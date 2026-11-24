@@ -1,0 +1,19 @@
+[Unit]
+Description=MouFlencoder (encodage GPU de la médiathèque)
+# Ajoutez ici le montage de votre médiathèque, ex. : After=network-online.target mnt-media.mount
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/opt/mouflencoder
+ExecStart=/usr/bin/python3 /opt/mouflencoder/app.py
+Restart=on-failure
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+# Racine de la médiathèque, telle qu'Emby la voit
+Environment=MFE_NAS_ROOT=/mnt/media
+#Environment=MFE_EMBY_HOST=http://192.168.1.10:8096
+#Environment=MFE_WORK=/var/tmp/mouflencoder
+
+[Install]
+WantedBy=multi-user.target

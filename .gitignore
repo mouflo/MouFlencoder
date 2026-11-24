@@ -1,0 +1,15 @@
+# Données locales : base, cache Emby, secrets — jamais versionnés
+data/
+*.env
+session_key
+
+# Sauvegardes et caches
+*.bak*
+__pycache__/
+*.pyc
+
+# Binaires et police non redistribuables (voir bin/README.md et fonts/README.md)
+bin/*
+!bin/README.md
+fonts/*
+!fonts/README.md

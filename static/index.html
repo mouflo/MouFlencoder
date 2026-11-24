@@ -1,0 +1,993 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MouFlencoder</title>
+<link rel="manifest" href="/icons/manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="/icons/mouflencoder.svg">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="theme-color" content="#0d1016">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="MouFlencoder">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+html,body{margin:0;padding:0}
+[hidden]{display:none!important}
+img{max-width:100%}
+
+/* Concept : poste de régie sombre, rail de navigation à gauche, listes denses au centre.
+   Le rouge-orangé sert aux actions, le vert menthe est réservé au gain d'espace. */
+:root{
+  --bg:#0d1016; --panel:#141923; --raised:#1b2230; --line:#263042; --line-soft:#1d2533;
+  --fg:#e9edf4; --fg2:#a6b0c1; --fg3:#7a8697;
+  --accent:#ff6a3d; --accent-ink:#1c0b04; --accent-soft:rgba(255,106,61,.15);
+  --gain:#38d9a9; --gain-soft:rgba(56,217,169,.14);
+  --warn:#f4b942; --warn-soft:rgba(244,185,66,.15);
+  --bad:#ff6b81; --bad-soft:rgba(255,107,129,.15);
+  --info:#6ea8ff; --info-soft:rgba(110,168,255,.15);
+  --shadow:0 12px 32px rgba(0,0,0,.4);
+  --f-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --f-body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#eef0f4; --panel:#ffffff; --raised:#f4f6fa; --line:#d9dee8; --line-soft:#e6eaf1;
+    --fg:#161b25; --fg2:#4a5568; --fg3:#6b7686;
+    --accent:#e8501f; --accent-ink:#ffffff; --accent-soft:rgba(232,80,31,.11);
+    --gain:#0c9a73; --gain-soft:rgba(12,154,115,.12);
+    --warn:#b7791f; --warn-soft:rgba(183,121,31,.13);
+    --bad:#d6334f; --bad-soft:rgba(214,51,79,.1);
+    --info:#2f6fe0; --info-soft:rgba(47,111,224,.1);
+    --shadow:0 12px 28px rgba(30,40,60,.12);
+    color-scheme:light;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#eef0f4; --panel:#ffffff; --raised:#f4f6fa; --line:#d9dee8; --line-soft:#e6eaf1;
+  --fg:#161b25; --fg2:#4a5568; --fg3:#6b7686;
+  --accent:#e8501f; --accent-ink:#ffffff; --accent-soft:rgba(232,80,31,.11);
+  --gain:#0c9a73; --gain-soft:rgba(12,154,115,.12);
+  --warn:#b7791f; --warn-soft:rgba(183,121,31,.13);
+  --bad:#d6334f; --bad-soft:rgba(214,51,79,.1);
+  --info:#2f6fe0; --info-soft:rgba(47,111,224,.1);
+  --shadow:0 12px 28px rgba(30,40,60,.12);
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:14px/1.5 var(--f-body);margin:0}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.num{font-variant-numeric:tabular-nums}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.app{display:grid;grid-template-columns:236px minmax(0,1fr);min-height:100vh}
+.rail{position:sticky;top:env(safe-area-inset-top,0px);align-self:start;height:100vh;padding:20px 14px;display:flex;flex-direction:column;gap:6px;border-right:1px solid var(--line-soft);background:var(--panel)}
+.brand{display:flex;align-items:center;gap:10px;padding:2px 8px 18px}
+.brand svg{flex:none}
+.brand b{font:800 20px/1 var(--f-display);letter-spacing:-.02em}
+.brand small{display:block;font-size:11px;color:var(--fg3);margin-top:3px;letter-spacing:.02em}
+.navlbl{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg3);padding:14px 10px 4px}
+.nav{display:flex;align-items:center;gap:11px;width:100%;padding:9px 10px;border:0;background:none;border-radius:9px;color:var(--fg2);text-align:left}
+.nav:hover{background:var(--raised);color:var(--fg)}
+.nav[aria-current="page"]{background:var(--accent-soft);color:var(--fg)}
+.nav[aria-current="page"] svg{color:var(--accent)}
+.nav svg{width:18px;height:18px;flex:none}
+.nav .cnt{margin-left:auto;font:500 11px var(--f-mono);color:var(--fg3);background:var(--raised);padding:1px 7px;border-radius:99px}
+.railfoot{margin-top:auto;font-size:12px;color:var(--fg3);padding:10px 8px 0;border-top:1px solid var(--line-soft)}
+
+.main{min-width:0;padding-bottom:110px}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 28px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line-soft)}
+.demo{font:600 11px var(--f-body);letter-spacing:.05em;text-transform:uppercase;color:var(--warn);background:var(--warn-soft);padding:4px 9px;border-radius:99px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+.chip{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:99px;background:var(--panel);border:1px solid var(--line-soft);font-size:12.5px;color:var(--fg2);white-space:nowrap}
+.chip b{font:500 12.5px var(--f-mono);color:var(--fg)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--gain);flex:none}
+.dot.pause{background:var(--warn)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:9px;border:1px solid var(--line);background:var(--panel);font-weight:500}
+.btn:hover{background:var(--raised)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.danger{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,var(--line))}
+.btn.sm{padding:5px 10px;font-size:12.5px;border-radius:8px}
+.btn svg{width:16px;height:16px}
+
+.page{padding:26px 28px 0;display:flex;flex-direction:column;gap:22px;max-width:1280px}
+.page[hidden]{display:none}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.head h1{font-size:30px;font-weight:800}
+.head p{margin:4px 0 0;color:var(--fg2);max-width:62ch}
+.card{background:var(--panel);border:1px solid var(--line-soft);border-radius:16px;padding:20px}
+.card h2{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.card h2 small{font:400 12px var(--f-body);color:var(--fg3)}
+.grid{display:grid;gap:18px}
+.g2{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr)}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.kpi .v{font:800 34px/1.05 var(--f-display);letter-spacing:-.02em}
+.kpi .v small{font:500 15px var(--f-body);color:var(--fg2);margin-left:4px}
+.kpi .l{color:var(--fg2);margin-top:6px;font-size:13px}
+.kpi.hero{background:linear-gradient(135deg,var(--gain-soft),transparent 70%),var(--panel)}
+.kpi.hero .v{font-size:54px;color:var(--gain)}
+.up{color:var(--gain);font-weight:600}
+
+/* progression en pellicule : segments réguliers comme des photogrammes */
+.film{height:12px;border-radius:4px;background:var(--raised);overflow:hidden;position:relative}
+.film i{position:absolute;inset:0 auto 0 0;background:var(--accent);width:0;transition:width .4s}
+.film::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 9px,var(--panel) 9px 11px)}
+.film.gain i{background:var(--gain)}
+.gbar{height:6px;border-radius:3px;background:var(--raised);overflow:hidden;min-width:80px}
+.gbar i{display:block;height:100%;border-radius:3px;background:var(--gain)}
+.gbar.low i{background:var(--warn)}
+
+.tag{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:500;white-space:nowrap}
+.tag.ok{background:var(--gain-soft);color:var(--gain)}
+.tag.run{background:var(--accent-soft);color:var(--accent)}
+.tag.wait,.tag.info{background:var(--info-soft);color:var(--info)}
+.tag.warn{background:var(--warn-soft);color:var(--warn)}
+.tag.bad{background:var(--bad-soft);color:var(--bad)}
+.tag.mute{background:var(--raised);color:var(--fg2)}
+
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.search{flex:1 1 220px;min-width:0;padding:9px 12px;border-radius:9px;border:1px solid var(--line);background:var(--panel)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--panel)}
+.seg button{border:0;background:none;padding:8px 12px;color:var(--fg2)}
+.seg button[aria-pressed="true"]{background:var(--raised);color:var(--fg);font-weight:600}
+.range{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--fg2)}
+.range input{accent-color:var(--accent);width:140px}
+
+.tblwrap{overflow-x:auto;border:1px solid var(--line-soft);border-radius:16px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;min-width:760px}
+th{font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--fg3);text-align:left;padding:11px 14px;border-bottom:1px solid var(--line-soft);font-weight:600;white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+tr.row{cursor:pointer}
+tr.row:hover td{background:color-mix(in srgb,var(--raised) 60%,transparent)}
+tr.row.sel td{background:var(--accent-soft)}
+tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right}
+.title{font-weight:600}
+.sub{color:var(--fg3);font-size:12.5px}
+.chk{width:18px;height:18px;accent-color:var(--accent)}
+.chev{display:inline-block;transition:transform .15s;color:var(--fg3)}
+.open .chev{transform:rotate(90deg)}
+tr.eps>td{padding:0;background:var(--bg)}
+.epl{padding:6px 14px 14px 52px;display:grid;gap:2px}
+.ep{display:grid;grid-template-columns:90px minmax(0,1fr) 90px 130px;gap:12px;align-items:center;padding:6px 8px;border-radius:8px;font-size:13px}
+.ep:hover{background:var(--raised)}
+
+.actionbar{position:fixed;left:236px;right:0;bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;pointer-events:none;z-index:30;padding:0 16px}
+.actionbar .in{pointer-events:auto;display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:var(--raised);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:16px;padding:12px 16px;max-width:900px}
+.actionbar[hidden]{display:none}
+.actionbar b{font-family:var(--f-display);font-size:18px}
+
+.steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.step{padding:10px 12px;border-radius:10px;background:var(--raised);font-size:12.5px;color:var(--fg3);border:1px solid transparent}
+.step b{display:block;font-size:13px;color:var(--fg2);margin-bottom:2px}
+.step.done{color:var(--gain)}
+.step.done b{color:var(--gain)}
+.step.now{border-color:var(--accent);background:var(--accent-soft);color:var(--fg)}
+.step.now b{color:var(--accent)}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:16px}
+.stats div{font-size:12.5px;color:var(--fg3)}
+.stats b{display:block;font:500 18px var(--f-mono);color:var(--fg);margin-top:2px}
+.qrow{display:grid;grid-template-columns:28px minmax(0,1fr) 150px 90px 130px;gap:12px;align-items:center;padding:10px 4px;border-bottom:1px solid var(--line-soft)}
+.qrow:last-child{border-bottom:0}
+.prow{display:grid;grid-template-columns:minmax(0,1fr) 80px 90px;gap:12px;align-items:center;padding:9px 4px;border-bottom:1px solid var(--line-soft)}
+.prow:last-child{border-bottom:0}
+@media (max-width:700px){.prow{grid-template-columns:minmax(0,1fr) auto}}
+.qrow .ic{display:flex;gap:2px}
+.qname{display:flex;gap:8px;align-items:center;min-width:0;font-size:12.5px;cursor:pointer}
+.qname input{flex:none}
+.qname span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qsel{margin-bottom:10px;align-items:center;position:sticky;top:60px;z-index:15;background:var(--panel);padding:10px 0;border-bottom:1px solid var(--line-soft)}
+.qbtns,.qgrid{display:contents}
+.qgrid .btn{gap:4px}
+.qbar-top,.qshort{display:none}
+.ar{font-style:normal}
+.qrow .ic button{border:0;background:none;color:var(--fg3);padding:2px 5px;border-radius:6px}
+.qrow .ic button:hover{background:var(--raised);color:var(--fg)}
+
+.note{padding:12px 14px;border-radius:12px;background:var(--info-soft);color:var(--fg);border:1px solid color-mix(in srgb,var(--info) 30%,transparent);font-size:13px}
+.note.warn{background:var(--warn-soft);border-color:color-mix(in srgb,var(--warn) 35%,transparent)}
+.settings{display:grid;gap:18px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.field{display:grid;gap:6px;padding:12px 0;border-bottom:1px solid var(--line-soft)}
+.field:last-child{border-bottom:0}
+.field label{font-weight:600}
+.field .hint{color:var(--fg3);font-size:12.5px}
+.field .ctl{display:flex;align-items:center;gap:12px}
+.field input[type=range]{accent-color:var(--accent);flex:1;min-width:0}
+.field .val{font:500 14px var(--f-mono);min-width:64px;text-align:right}
+.field select,.field input[type=text]{padding:8px 10px;border-radius:9px;border:1px solid var(--line);background:var(--raised);min-width:0;width:100%}
+.sw{appearance:none;width:42px;height:24px;border-radius:99px;background:var(--line);position:relative;border:0;flex:none}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--fg);transition:transform .15s}
+.sw:checked{background:var(--accent)}
+.sw:checked::after{transform:translateX(18px);background:var(--accent-ink)}
+.sched{display:grid;grid-template-columns:34px repeat(24,minmax(0,1fr));gap:2px;font-size:10.5px;color:var(--fg3)}
+.sched .d{display:flex;align-items:center}
+.sched .h{text-align:center}
+.sched button{aspect-ratio:1;border:0;border-radius:4px;background:var(--raised);padding:0;min-width:0}
+.sched button[aria-pressed="true"]{background:var(--accent)}
+.sched .h:nth-child(odd){visibility:hidden}
+
+.modal{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:rgba(5,8,14,.6);padding:16px}
+.modal[hidden]{display:none}
+.modal .box{background:var(--panel);border:1px solid var(--line);border-radius:18px;max-width:480px;width:100%;padding:24px;box-shadow:var(--shadow);display:grid;gap:14px}
+.modal h3{font-size:20px}
+.modal .bts{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:99px;font-size:13px;font-weight:500;z-index:70;box-shadow:var(--shadow)}
+.toast[hidden]{display:none}
+svg text{fill:var(--fg3);font:11px var(--f-mono)}
+.empty{padding:28px;text-align:center;color:var(--fg3)}
+
+
+.lvl1 td{background:color-mix(in srgb,var(--raised) 55%,transparent)}
+.lvl1 td:nth-child(2){padding-left:34px}
+.lvl1 .tmrow{margin-left:18px}
+.lvl2 td{background:var(--bg)}
+.lvl2 td:nth-child(2){padding-left:66px}
+@media (max-width:820px){.lvl1 td:nth-child(2){padding-left:18px}.lvl2 td:nth-child(2){padding-left:32px}}
+.lvl1.sel td,.lvl2.sel td{background:var(--accent-soft)}
+tr.tool td{padding:8px 14px;background:var(--bg)}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.mob{display:none}
+.short{display:none}
+.qs{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.qs input[type=range]{accent-color:var(--accent);width:min(260px,100%);flex:1 1 160px;min-width:0}
+.qs input[type=number]{padding:5px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--fg)}
+.tempo{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.td{border:1px solid var(--line);background:var(--raised);border-radius:10px;padding:7px 2px;display:grid;gap:2px;text-align:center;font-size:11.5px;color:var(--fg2)}
+.td b{font:500 12px var(--f-mono);color:inherit}
+.td-bleu{border-color:color-mix(in srgb,var(--info) 55%,var(--line));color:var(--info)}
+.td-blanc{color:var(--fg);border-color:var(--fg3)}
+.td-rouge{background:var(--bad-soft);border-color:var(--bad);color:var(--bad)}
+.tempo2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:6px}
+.tt{border:1px solid var(--line);background:var(--raised);border-radius:12px;padding:12px 14px;display:grid;gap:2px;color:var(--fg2)}
+.tt b{font:800 22px var(--f-display);color:inherit}
+.tt small{font-size:12px;color:var(--fg3)}
+.tt.td-rouge small{color:var(--bad)}
+.tmrow{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 2px 18px;max-width:100%}
+td:nth-child(2){min-width:220px}
+.tm{border:1px solid var(--line);background:var(--panel);border-radius:99px;padding:1px 10px;font-size:12px;color:var(--fg2)}
+.tm b{font:500 11.5px var(--f-mono);color:var(--fg3);margin-left:3px}
+.tm:hover{border-color:var(--fg3);color:var(--fg)}
+.tm.on{background:var(--accent-soft);border-color:var(--accent);color:var(--fg)}
+.tm.on b{color:var(--accent)}
+@media (max-width:1000px){
+  .g2,.g3,.settings{grid-template-columns:1fr}
+  .g4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .steps{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:820px){
+  .top{position:static;gap:8px;padding:10px 16px}
+  .demo{margin-right:auto;font-size:10.5px}
+  .chips{order:5;flex:0 0 100%;flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;gap:6px}
+  .chip{font-size:12px;padding:4px 9px}
+  #btn-pause span{display:none}
+  #btn-pause,#btn-theme{padding:7px 11px}
+  .head h1{font-size:24px}
+  .head p,.hintmob{display:none}
+  .note{font-size:12.5px;padding:9px 11px}
+  .page{gap:16px}
+  .cat table{min-width:0}
+  .cat th:nth-child(3),.cat td:nth-child(3),.cat th:nth-child(4),.cat td:nth-child(4),.cat th:nth-child(6),.cat td:nth-child(6){display:none}
+  .cat th:nth-child(5){min-width:0!important}
+  .cat td{padding:9px 10px}
+  .cat td:nth-child(5) .gbar{min-width:40px}
+  .cat td:nth-child(5) .mono{min-width:0!important;font-size:12px}
+  .cat .title{font-size:14px}
+  .mob{display:block;margin-top:2px;font-size:12px;color:var(--fg3)}
+  .tmrow{margin-left:14px}
+  .long{display:none}
+  .short{display:inline}
+  .actionbar{padding:0 10px;bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+  .actionbar .in{width:100%;flex-wrap:nowrap;gap:8px;padding:8px 10px;border-radius:14px}
+  .actionbar .in>div:first-child{flex:1 1 auto;min-width:0}
+  #ab-d,#ab-est,#ab-l{display:none}
+  .actionbar b{font-size:18px}
+  #ab-g{font-size:12px;white-space:normal}
+  .actionbar .btn{flex:none;padding:8px 12px}
+  .main{padding-bottom:84px}
+}
+@media (max-width:820px){
+  .app{grid-template-columns:1fr}
+  .rail{position:static;height:auto;flex-direction:row;overflow-x:auto;padding:10px 12px;border-right:0;border-bottom:1px solid var(--line-soft);gap:4px;align-items:center}
+  .brand{padding:0 10px 0 4px}
+  .brand small,.navlbl,.railfoot{display:none}
+  .nav{width:auto;flex:none;padding:8px 11px}
+  .nav .cnt{display:none}
+  .top{padding:10px 16px}
+  .page{padding:20px 16px 0}
+  .chips{margin-left:0}
+  .actionbar{left:0}
+  .qrow{grid-template-columns:22px minmax(0,1fr);grid-template-areas:"n t" ". s";gap:6px 10px;align-items:start;padding:12px 2px}
+  .qrow .qnum{grid-area:n;padding-top:1px}
+  .qrow>div{grid-area:t}
+  .qrow .col3{grid-area:s}
+  .qrow .col3:empty{display:none}
+  .qrow .ic,.qrow .col4{display:none}
+  .qrow .seg button{padding:5px 14px;font-size:13px}
+  .qname{align-items:flex-start;line-height:1.35}
+  .qname input{width:20px;height:20px;margin:0;accent-color:var(--accent)}
+  .qname span{white-space:normal;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
+  .qall{flex:1;justify-content:center}
+  .qlong{display:none}
+  .qshort{display:inline}
+  .qsel{position:static;padding:6px 0}
+  .qbtns{display:none;position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--raised);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:14px;padding:8px 10px}
+  .qsel.has .qbtns{display:block}
+  .qbar-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+  .qgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+  .qgrid .btn{justify-content:center;gap:4px;height:44px;padding:0 2px;line-height:1;font-size:13px}
+  .qgrid .ar{font-size:15px;line-height:1}
+  #v-queue{padding-bottom:120px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tempo{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .ep{grid-template-columns:70px minmax(0,1fr) 70px}
+  .ep .st{display:none}
+  .epl{padding-left:14px}
+  .kpi.hero .v{font-size:44px}
+}
+.medrow{cursor:pointer}.medrow:hover td{background:var(--raised)}
+.medsea td{background:var(--raised);font-size:13px;padding-top:8px;padding-bottom:8px}
+.medep td{font-size:12.5px;padding-top:7px;padding-bottom:7px}
+.medep td:first-child{padding-left:34px}
+#v-media td:nth-child(2){min-width:0}
+@media (max-width:700px){#v-media .hm{display:none}#v-media table{min-width:0}}
+.acts{display:inline-flex;gap:6px;flex-wrap:nowrap;justify-content:flex-end;white-space:nowrap}
+.medsea .tag{margin-left:6px;font-size:11.5px;padding:1px 8px}
+
+@media (max-width:1259px){
+  #v-media .mob{display:block;margin-top:2px;font-size:12px;color:var(--fg3)}
+  #v-media table{min-width:0}
+  #v-media thead tr.medhd{display:none}
+  #v-media tr.medrow,#v-media tr.medsea{display:grid;grid-template-columns:minmax(0,1fr);row-gap:10px;padding:12px 14px;border-bottom:1px solid var(--line-soft)}
+  #v-media tr.medsea{background:var(--raised)}
+  #v-media tr.medrow>td,#v-media tr.medsea>td,#v-media tr.medep>td{display:block;padding:0;border:0;background:transparent}
+  #v-media tr.medrow>td:nth-child(n+2):nth-child(-n+5),#v-media tr.medsea>td:nth-child(n+2):nth-child(-n+5){display:none}
+  #v-media tr.medrow>td:last-child:empty,#v-media tr.medsea>td:last-child:empty{display:none}
+  #v-media tr.medep{display:flex;gap:12px;align-items:baseline;padding:8px 14px 8px 28px;border-bottom:1px solid var(--line-soft)}
+  #v-media tr.medep>td:first-child{flex:1;min-width:0;padding-left:0}
+  #v-media tr.medep>td:nth-child(n+3){display:none}
+  #v-media .acts{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:8px}
+  #v-media .acts .btn{flex:1 1 140px;max-width:240px;justify-content:center;min-height:40px;font-size:13.5px}
+  #v-media .medsea .tag{margin-left:4px}
+}
+@media (max-width:820px){
+  .seg{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .seg::-webkit-scrollbar{display:none}
+  .seg button{white-space:nowrap;flex:none}
+  .tblwrap{-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}
+  /* Registre et Corbeille : une carte par ligne, le nom du fichier prend toute la largeur */
+  #v-log table,#v-log tbody,#v-trash table,#v-trash tbody{display:block;width:100%;min-width:0}
+  #v-log thead,#v-trash thead{display:none}
+  #v-log tbody tr,#v-trash tbody tr{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:5px 10px;padding:11px 12px;border-bottom:1px solid var(--line-soft)}
+  #v-log tbody tr:last-child,#v-trash tbody tr:last-child{border-bottom:0}
+  #v-log td,#v-trash td{display:block;min-width:0;padding:0;border:0;overflow-wrap:anywhere}
+  #v-log td:nth-child(n+4):nth-child(-n+6),#v-log td:empty,#v-trash td:nth-child(2),#v-trash td:nth-child(4),#v-trash td:nth-child(6){display:none}
+  #v-log td:nth-child(2){grid-column:1;grid-row:1}
+  #v-log td:nth-child(7){grid-column:2;grid-row:1;text-align:right;white-space:nowrap}
+  #v-log td:nth-child(3){grid-column:1/-1;grid-row:2}
+  #v-log td:nth-child(1){grid-column:1;grid-row:3;font-size:12px}
+  #v-log td:nth-child(8){grid-column:2;grid-row:3}
+  #v-trash td:nth-child(1){grid-column:1/-1;grid-row:1}
+  #v-trash td:nth-child(3){grid-column:1;grid-row:2;text-align:left}
+  #v-trash td:nth-child(3)::before{content:"Original ";color:var(--fg3)}
+  #v-trash td:nth-child(5){grid-column:2;grid-row:2;text-align:right}
+  #v-trash td:nth-child(7){grid-column:1/-1;grid-row:3;display:flex;gap:8px;margin-top:3px}
+  #v-log td.empty,#v-trash td.empty{grid-column:1/-1;grid-row:1;padding:10px 0;text-align:center}
+}
+.menu-btn,.curtitle{display:none}
+@media (max-width:820px){
+  .rail{position:sticky;top:env(safe-area-inset-top,0px);z-index:40;flex-wrap:wrap;overflow:visible;max-height:100vh;gap:0}
+  .rail.open{overflow-y:auto}
+  .brand{flex:none;padding:0 12px 0 4px}
+  .brand>div{display:none}
+  .curtitle{display:block;flex:1;min-width:0;font:700 18px var(--f-display);color:var(--fg);margin-right:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .menu-btn{display:flex;align-items:center;justify-content:center;width:44px;height:40px;border:1px solid var(--line-soft);background:var(--raised);color:var(--fg);border-radius:10px;flex:none}
+  .rail .nav,.rail .navlbl,.rail .railfoot{display:none}
+  .rail.open .nav{display:flex;flex:0 0 100%;width:100%;padding:13px 10px;font-size:15px}
+  .rail.open .nav:first-of-type{margin-top:10px}
+  .rail.open .navlbl{display:block;flex:0 0 100%}
+  .rail.open .railfoot{display:block;flex:0 0 100%;margin-top:10px;width:100%}
+  .rail.open .nav .cnt{display:inline}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.tt.td-inconnu{color:var(--warn);border-color:var(--warn)}
+#recent{grid-template-columns:minmax(0,1fr)}
+#recent>div{min-width:0}
+#catbars{grid-template-columns:minmax(0,1fr)}
+#state-txt{display:inline-block;max-width:min(40ch,55vw);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
+@media (min-width:821px){.chips{flex:1 1 0;min-width:0;justify-content:flex-start}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail" id="rail" aria-label="Navigation">
+    <div class="brand">
+      <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="15" fill="none" stroke="var(--accent)" stroke-width="2.4"/><circle cx="17" cy="9" r="3.1" fill="var(--accent)"/><circle cx="9.4" cy="21.3" r="3.1" fill="var(--accent)"/><circle cx="24.6" cy="21.3" r="3.1" fill="var(--accent)"/><circle cx="17" cy="17" r="2" fill="var(--fg)"/></svg>
+      <div><b>MouFlencoder</b><small>Encodage GPU · VAAPI</small></div>
+    </div>
+    <span class="curtitle" id="cur-title"></span>
+    <button class="menu-btn" id="btn-menu" aria-label="Menu" aria-expanded="false" aria-controls="rail"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <button class="nav" data-view="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Tableau de bord</button>
+    <div class="navlbl">À traiter</div>
+    <button class="nav" data-view="anime"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.2 5.6L20 9.3l-4.4 3.8 1.4 5.9L12 15.8 7 19l1.4-5.9L4 9.3l5.8-.7z"/></svg>Animes<span class="cnt" id="c-anime"></span></button>
+    <button class="nav" data-view="series"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Séries<span class="cnt" id="c-series"></span></button>
+    <button class="nav" data-view="films"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/></svg>Films<span class="cnt" id="c-films"></span></button>
+    <button class="nav" data-view="media"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Médiathèque</button>
+    <div class="navlbl">Suivi</div>
+    <button class="nav" data-view="queue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>File d'attente<span class="cnt" id="c-queue"></span></button>
+    <button class="nav" data-view="trash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>Corbeille<span class="cnt" id="c-trash"></span></button>
+    <button class="nav" data-view="log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7"/></svg>Registre</button>
+    <button class="nav" data-view="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>Réglages</button>
+    <div class="railfoot"><b id="ver" style="color:var(--fg2)"></b><br>Aucun original n'est supprimé sans votre action dans la Corbeille.<br><a href="/logout" style="color:var(--fg3)">Se déconnecter</a></div>
+  </aside>
+
+  <div class="main">
+    <header class="top">
+      <div class="chips">
+        <span class="chip"><span class="dot" id="state-dot"></span><b id="state-txt">…</b></span>
+        <span class="chip">Temp. <b id="chip-temp">—</b></span>
+        <span class="chip">NAS libre <b id="chip-nas">—</b></span>
+        <span class="chip">Tempo <b id="chip-tempo">—</b></span>
+        <span class="chip" id="chip-test" style="color:var(--warn)" hidden>Mode test · plages ignorées</span>
+        <span class="chip" title="Pause seulement si Emby transcode la vidéo">Emby <b id="chip-emby">—</b></span>
+      </div>
+      <button class="btn" id="btn-pause"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg><span>Mettre en pause</span></button>
+      <button class="btn" id="btn-theme" aria-label="Changer de thème">☾ Sombre</button>
+    </header>
+
+    <section class="page" id="v-dashboard">
+      <div class="head"><div><h1>Tableau de bord</h1><p>Ce que l'encodage a déjà rapporté, ce qui tourne en ce moment et ce qui reste à gagner.</p></div></div>
+      <div class="grid g2">
+        <div class="card kpi hero">
+          <div class="l" style="margin:0 0 8px">Espace récupéré</div>
+          <div class="v" id="k-saved">0<small>Go</small></div>
+          <div class="l" id="k-saved-l">Aucun fichier remplacé pour l'instant.</div>
+          <div id="chart" style="margin-top:14px"></div>
+        </div>
+        <div class="card">
+          <h2>En ce moment <span class="tag mute" id="live-tag">Au repos</span></h2>
+          <div id="live"></div>
+        </div>
+      </div>
+      <div class="grid g4">
+        <div class="card kpi"><div class="v" id="k-avg">—</div><div class="l">Gain moyen sur les fichiers remplacés</div></div>
+        <div class="card kpi"><div class="v" id="k-rep">0</div><div class="l">Fichiers remplacés</div></div>
+        <div class="card kpi"><div class="v" id="k-ref">0</div><div class="l">Fichiers refusés ou ignorés (mémorisés)</div></div>
+        <div class="card kpi"><div class="v" id="k-trash">0<small>Go</small></div><div class="l">Originaux en Corbeille, à vider quand vous voulez</div></div>
+      </div>
+      <div class="grid g2">
+        <div class="card"><h2>Gain par catégorie <small>Go récupérés</small></h2><div id="catbars" style="display:grid;gap:14px"></div></div>
+        <div class="card"><h2>Activité récente</h2><div id="recent" style="display:grid;gap:10px"></div></div>
+      </div>
+    </section>
+
+    <section class="page" id="v-anime" hidden></section>
+    <section class="page" id="v-series" hidden></section>
+    <section class="page" id="v-films" hidden></section>
+
+    <section class="page" id="v-media" hidden>
+      <div class="head"><div><h1>Médiathèque par taille</h1><p>Toute votre médiathèque classée par taille réelle des fichiers, sans estimation. Ouvrez une série pour voir ses saisons et ses épisodes du plus gros au plus petit, puis ajoutez à la file ce qui vous intéresse.</p></div>
+        <div class="tools"><button class="btn sm" id="med-reload">Actualiser</button></div></div>
+      <div class="note" id="med-uni" hidden style="margin-bottom:12px"></div>
+      <div class="tools"><input class="search" id="med-q" type="text" placeholder="Rechercher une série ou un fichier" aria-label="Rechercher dans la médiathèque"><div class="seg" id="med-m"></div><div class="seg" id="med-c"></div><div class="seg" id="med-f"></div></div>
+      <div class="tools" id="med-t2"><span class="sub">Trier par</span><div class="seg" id="med-s"></div><span class="sub">puis par</span><div class="seg" id="med-s2"></div></div>
+      <div class="sub" id="med-sum" style="margin:-4px 0 4px"></div>
+      <div class="tblwrap"><table><thead id="med-h"></thead><tbody id="med-b"></tbody></table></div>
+    </section>
+
+    <section class="page" id="v-queue" hidden>
+      <div class="head"><div><h1>File d'attente</h1><p>Un fichier à la fois, à priorité minimale. La file se met en pause toute seule quand Emby transcode la vidéo, un jour Tempo rouge ou si le processeur chauffe trop. Le bouton « Mettre en pause » gèle l'encodage tout de suite et le reprend exactement là où il s'est arrêté.</p></div>
+        <div class="tools"><button class="btn sm danger" id="btn-cancel">Annuler le fichier en cours</button></div></div>
+      <div class="card" id="q-current"></div>
+      <div class="seg" id="qtabs" role="group" aria-label="Affichage" style="align-self:flex-start"><button data-qt="list" aria-pressed="true">À suivre <span class="sub" id="qt-n"></span></button><button data-qt="pauses" aria-pressed="false">Pauses automatiques <span class="sub" id="qt-p"></span></button></div>
+      <div class="card" id="qt-pauses" hidden><h2>Pauses automatiques <small id="pauses-sum"></small></h2><div id="pauses" style="max-height:60vh;overflow-y:auto;overscroll-behavior:contain"></div></div>
+      <div class="card" id="qt-list"><h2>À suivre</h2><div class="tools" style="margin-bottom:10px"><button class="btn sm qall" id="q-all-est"><span class="qlong">Tout passer en estimation</span><span class="qshort">Tout en estimation</span></button><button class="btn sm qall" id="q-all-enc"><span class="qlong">Tout passer en encodage</span><span class="qshort">Tout en encodage</span></button></div><div class="tools qsel" id="q-sel"><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="q-all" aria-label="Tout cocher"> <span class="sub" id="q-n">Aucun fichier coché</span></label><div class="qbtns"><div class="qbar-top"><b id="q-n2"></b><button class="btn sm" id="q-none">Tout décocher</button></div><div class="qgrid"><button class="btn sm" data-qa="top"><i class="ar">⤒</i><span class="qlong">Tout en haut</span><span class="qshort">Haut</span></button><button class="btn sm" data-qa="bottom"><i class="ar">⤓</i><span class="qlong">Tout en bas</span><span class="qshort">Bas</span></button><button class="btn sm" data-qa="encode">Encoder</button><button class="btn sm" data-qa="estimate">Estimer</button><button class="btn sm danger" data-qa="remove"><span class="qlong">Retirer de la file</span><span class="qshort">Retirer</span></button></div></div></div><div id="qlist"></div></div>
+    </section>
+
+    <section class="page" id="v-trash" hidden>
+      <div class="head"><div><h1>Corbeille</h1><p>Les originaux remplacés sont gardés ici, au même chemin. Rien ne part sans votre action.</p></div>
+        <button class="btn danger" id="btn-empty">Vider la Corbeille…</button></div>
+      <div class="note warn">Vider la Corbeille libère la place de façon définitive. Chaque original supprimé ne peut plus être restauré.</div>
+      <div class="tblwrap"><table><thead><tr><th>Fichier</th><th>Type</th><th class="r">Original</th><th class="r">Remplacé par</th><th class="r">Gain</th><th>Date</th><th></th></tr></thead><tbody id="trashbody"></tbody></table></div>
+    </section>
+
+    <section class="page" id="v-log" hidden>
+      <div class="head"><div><h1>Registre</h1><p>Tout ce qui a été évalué, remplacé, refusé ou ignoré, avec le gain. Un fichier refusé n'est pas réévalué tant qu'il ne change pas.</p></div></div>
+      <div class="tools"><input class="search" id="logq" type="text" placeholder="Rechercher un fichier ou une série" aria-label="Rechercher dans le registre"><div class="seg" id="logf"></div></div>
+      <div class="tblwrap"><table><thead><tr><th>Date</th><th>Statut</th><th>Fichier</th><th class="r">Avant</th><th class="r">Après</th><th class="r">Gain %</th><th class="r">Gain Mo</th><th></th></tr></thead><tbody id="logbody"></tbody></table></div>
+    </section>
+
+    <section class="page" id="v-settings" hidden>
+      <div class="head"><div><h1>Réglages</h1><p>Les règles qui décident quoi toucher, quand, et à quel prix pour la qualité. Chaque série peut aussi avoir son propre curseur Qualité ↔ Gain.</p></div></div>
+      <div class="settings">
+        <div class="card">
+          <h2>Quoi toucher</h2>
+          <div class="field"><label for="s-cap_series">Séries et films : ne pas toucher en dessous de</label><div class="ctl"><input type="range" id="s-cap_series" data-set="cap_series" min="300" max="2000" step="50"><span class="val" data-val="cap_series"></span></div></div>
+          <div class="field"><label for="s-cap_anime">Animes : ne pas toucher en dessous de (pour 22 min)</label><div class="ctl"><input type="range" id="s-cap_anime" data-set="cap_anime" min="200" max="1500" step="50"><span class="val" data-val="cap_anime"></span></div></div>
+          <div class="field"><label for="s-target_anime">Animes : taille visée (pour 22 min)</label><div class="ctl"><input type="range" id="s-target_anime" data-set="target_anime" min="0" max="1500" step="50"><span class="val" data-val="target_anime"></span></div><div class="hint">Avant chaque encodage, le fichier est estimé à plusieurs qualités et celle qui s'approche le plus de cette taille est choisie (le réglage de qualité de la liste est alors ignoré). 0 = désactivé.</div></div>
+          <div class="field"><label for="s-target_series">Séries : taille visée (pour 22 min)</label><div class="ctl"><input type="range" id="s-target_series" data-set="target_series" min="0" max="2000" step="50"><span class="val" data-val="target_series"></span></div></div>
+          <div class="field"><label for="s-target_films">Films : taille visée (pour 22 min)</label><div class="ctl"><input type="range" id="s-target_films" data-set="target_films" min="0" max="2000" step="25"><span class="val" data-val="target_films"></span></div></div>
+          <div class="field"><label for="s-qp_max">Qualité : qp maximum autorisé</label><div class="ctl"><input type="range" id="s-qp_max" data-set="qp_max" min="18" max="30" step="1"><span class="val" data-val="qp_max"></span></div><div class="hint">La qualité passe avant la taille. Si un épisode ne peut pas atteindre la taille visée sans dépasser ce qp, il est encodé à ce qp et reste plus gros que la cible ; s'il ne fait alors plus gagner assez de place, il n'est pas touché. Plus le chiffre est bas, meilleure est la qualité (26 conseillé, 28 visiblement dégradé).</div></div>
+          <div class="field"><label for="s-skip_x265_mo22">Ne pas encoder les x265 légers</label><div class="ctl"><input type="range" id="s-skip_x265_mo22" data-set="skip_x265_mo22" min="0" max="1200" step="25"><span class="val" data-val="skip_x265_mo22"></span></div><div class="hint">Un fichier déjà en x265 dont la taille ramenée à 22 min est sous ce seuil n'est pas encodé : le gain serait nul ou négatif (700 Mo pour 22 min, c'est environ 1,5 Go pour un épisode de 48 min). Au-dessus, il est encodé normalement. 0 = toujours encoder.</div></div>
+          <div class="field"><label for="s-skip_video_pct">Ne pas encoder si la vidéo est déjà proche de la cible</label><div class="ctl"><input type="range" id="s-skip_video_pct" data-set="skip_video_pct" min="0" max="200" step="2"><span class="val" data-val="skip_video_pct"></span></div><div class="hint">On retire l'audio et les sous-titres du poids du fichier. Si la vidéo restante est sous ce pourcentage de la taille visée (128 % = 480 Mo pour 22 min), le fichier n'est pas encodé : audio très lourd (DTS, TrueHD) ou source déjà très compressée. 0 = toujours encoder.</div></div>
+          <div class="field"><label for="s-min_saved">Gain minimum pour remplacer (pour 22 min)</label><div class="ctl"><input type="range" id="s-min_saved" data-set="min_saved" min="50" max="500" step="10"><span class="val" data-val="min_saved"></span></div><div class="hint">Le fichier n'est remplacé que s'il fait gagner au moins cette taille, proportionnellement à sa durée : 150 Mo pour 22 min, 300 Mo pour 44 min, 900 Mo pour 132 min. Sinon l'original reste en place et le refus est noté au registre.</div></div>
+          <div class="field"><label for="s-est_min">Estimation : ignorer si le gain estimé est sous</label><div class="ctl"><input type="range" id="s-est_min" data-set="est_min" min="10" max="60" step="1"><span class="val" data-val="est_min"></span></div><div class="hint">L'estimation se trompe d'environ 8 points : on garde une marge sous le seuil réel.</div></div>
+        </div>
+        <div class="card">
+          <h2>Qualité</h2>
+          <div class="field"><label>Curseur par série</label><div class="hint">Dans les listes, dépliez une série : le curseur Qualité ↔ Gain règle la valeur de qualité du GPU pour cette série seulement (animes : qp 18 à 30, séries et films : qp 20 à 32).</div></div>
+          <div class="field"><label>Style des sous-titres ASS (séries et films)</label><div class="hint">Trebuchet MS gras 18 · contour fin · ombre à 100 % · bas centre. Les animes restent gérés par Mouflanimexer.</div></div>
+          <div class="field"><label>Pistes</label><div class="hint">Audio français par défaut, sous-titres forcés français par défaut, coréen et japonais conservés, SRT gardés derrière l'ASS.</div></div>
+        </div>
+        <div class="card">
+          <h2>Quand</h2>
+          <div class="field"><div class="ctl"><input type="checkbox" class="sw" id="s-test_mode" data-set="test_mode" aria-label="Mode test"><label for="s-test_mode" style="font-weight:500">Mode test : encoder aussi en journée</label></div><div class="hint">Ignore les plages horaires, mais <b>pas les jours rouges</b> ni les transcodages Emby. À désactiver quand vous aurez validé le résultat : la nuit passe alors en priorité.</div></div>
+          <div class="field"><div class="ctl"><input type="checkbox" class="sw" id="s-pause_on_transcode" data-set="pause_on_transcode" aria-label="Pause pendant un transcodage Emby"><label for="s-pause_on_transcode" style="font-weight:500">Pause automatique quand Emby transcode la vidéo</label></div><div class="hint">Une lecture directe ne gêne pas le serveur et ne déclenche pas la pause.</div></div>
+          <div class="field"><label for="s-temp_cible">Température visée : ralentir plutôt que couper</label><div class="ctl"><input type="range" id="s-temp_cible" data-set="temp_cible" min="0" max="90" step="1"><span class="val" data-val="temp_cible"></span></div><div class="hint">Quand le processeur dépasse cette température, l'encodage ralentit progressivement (il travaille une fraction du temps) au lieu de s'arrêter. 0 = pas de ralentissement. La pause complète reste réglée par le curseur d'en dessous.</div></div>
+          <div class="field"><label for="s-temp_max">Pause si le processeur dépasse</label><div class="ctl"><input type="range" id="s-temp_max" data-set="temp_max" min="60" max="100" step="1"><span class="val" data-val="temp_max"></span></div></div>
+          <div class="field"><label>Hors mode test</label><div class="hint"><b style="color:var(--bad)">Rouge</b> : aucun encodage. <b>Blanc</b> : de nuit (22 h à 6 h) seulement. <b style="color:var(--info)">Bleu</b> : de nuit, et de jour seulement s'il y a au moins 10 fichiers en attente. Couleur inconnue : pause par prudence.</div></div>
+        </div>
+        <div class="card">
+          <h2>Jours Tempo <small>information réelle, jamais choisie ici</small></h2>
+          <div class="tempo2" id="tempo-tiles"></div>
+          <div class="field"><label>Source de la couleur</label><div class="hint">MouFlencoder relève tout seul la couleur du jour et du lendemain sur <span class="mono">api-couleur-tempo.fr</span>, un relais des données publiées par RTE. Il relit toutes les 30 minutes, toutes les 5 minutes entre 8 h et 11 h pour attraper l'annonce de 10 h 30. La couleur officielle qui engage RTE est celle publiée la veille à 10 h 30.</div></div>
+          <div class="field"><label>Dernière lecture</label><div class="hint" id="tempo-ts">Aucune couleur reçue pour l'instant.</div></div>
+          <div class="field"><div class="ctl"><input type="checkbox" class="sw" id="s-tempo_unknown_ok" data-set="tempo_unknown_ok" aria-label="Encoder même si la couleur est inconnue"><label for="s-tempo_unknown_ok" style="font-weight:500">Encoder même si la couleur Tempo est inconnue</label></div><div class="hint">Déconseillé : par défaut, une couleur inconnue met la file en pause pour ne jamais risquer un jour rouge.</div></div>
+        </div>
+        <div class="card">
+          <h2>Pistes audio et sous-titres</h2>
+          <div class="field"><div class="ctl"><input type="checkbox" class="sw" id="s-unify_remux" data-set="unify_remux" aria-label="Harmoniser les pistes même sans réduction"><label for="s-unify_remux" style="font-weight:500">Harmoniser les pistes des épisodes qui ne sont pas réduits</label></div>
+            <div class="hint">Quand un épisode n'est pas encodé (déjà petit, gain trop faible, refusé) ou quand tu ajoutes une saison entière, ses pistes sont tout de même mises au même standard que le reste : audio français en premier, sous-titres convertis, marqueur « traité ». La vidéo n'est pas réencodée et rien n'est retiré. <b>Fichiers MKV</b> : remplacés sur place, sans passer par la Corbeille. <b>TS, MP4, M4V, AVI</b> : convertis en MKV, l'original est gardé en Corbeille. HDR10, Dolby Vision et 4K sont remuxés comme le reste : la vidéo n'est jamais réencodée, les métadonnées HDR et la configuration Dolby Vision sont contrôlées et conservées. Les animes ne sont pas concernés (Mouflanimexer gère leurs pistes).</div></div>
+        </div>
+        <div class="card">
+          <h2>Nom des fichiers après encodage</h2>
+          <div class="field"><div class="ctl"><input type="checkbox" class="sw" id="s-rename_after" data-set="rename_after" aria-label="Renommer après encodage"><label for="s-rename_after" style="font-weight:500">Renommer et prévenir Sonarr, Radarr et Emby</label></div>
+            <div class="hint">Après chaque remplacement : la team devient « Team-MouFlo », ce qui permet de retrouver plus tard ce qui a été réencodé. <b>Séries et animes</b> : Sonarr relit le fichier puis le renomme avec son propre format (le H.264 devient H.265 dans le nom). <b>Films</b> : seule la team change, le reste du nom n'est pas touché. Emby est ensuite prévenu. À activer une fois Sonarr branché et testé (carte « Accès et clés »).</div></div>
+        </div>
+        <div class="card">
+          <h2>Notifications Telegram</h2>
+          <div class="field"><div class="ctl"><input type="checkbox" class="sw" id="s-tg_on" data-set="tg_on" aria-label="Notifications Telegram"><label for="s-tg_on" style="font-weight:500">Envoyer des notifications Telegram</label></div><div class="hint">Interrupteur général. Rien n'est envoyé tant que le jeton et la conversation ne sont pas enregistrés (carte « Accès et clés »).</div></div>
+          <div class="field"><div class="ctl"><input type="checkbox" class="sw" id="s-tg_done" data-set="tg_done" aria-label="Fin de file"><label for="s-tg_done" style="font-weight:500">File terminée</label></div><div class="hint">Un bilan quand la file est vide après un travail : fichiers remplacés, Go gagnés, refus, erreurs.</div></div>
+          <div class="field"><div class="ctl"><input type="checkbox" class="sw" id="s-tg_daily" data-set="tg_daily" aria-label="Bilan quotidien"><label for="s-tg_daily" style="font-weight:500">Bilan quotidien</label></div><label for="s-tg_daily_hour" class="sub">Heure d'envoi</label><div class="ctl"><input type="range" id="s-tg_daily_hour" data-set="tg_daily_hour" min="0" max="23" step="1"><span class="val" data-val="tg_daily_hour"></span></div></div>
+          <div class="field"><div class="ctl"><input type="checkbox" class="sw" id="s-tg_errors" data-set="tg_errors" aria-label="Erreurs"><label for="s-tg_errors" style="font-weight:500">Erreurs en série</label></div><div class="hint">Alerte à partir de 5 erreurs de suite (un problème qui se répète, pas un fichier isolé).</div></div>
+          <div class="field"><div class="ctl"><input type="checkbox" class="sw" id="s-tg_pause" data-set="tg_pause" aria-label="Pause longue"><label for="s-tg_pause" style="font-weight:500">Pause longue</label></div><label for="s-tg_pause_min" class="sub">Prévenir après</label><div class="ctl"><input type="range" id="s-tg_pause_min" data-set="tg_pause_min" min="5" max="240" step="5"><span class="val" data-val="tg_pause_min"></span></div><div class="hint">Chaleur, Emby, jour rouge ou couleur inconnue qui bloquent la file. Une pause manuelle ne prévient pas.</div></div>
+          <div class="field"><div class="ctl"><input type="checkbox" class="sw" id="s-tg_milestone" data-set="tg_milestone" aria-label="Paliers"><label for="s-tg_milestone" style="font-weight:500">Paliers de 100 Go récupérés</label></div></div>
+        </div>
+        <div class="card">
+          <h2>Accès et clés</h2>
+          <div class="field"><label>Connexion</label><div class="hint">À la première ouverture depuis votre réseau local, la page de connexion enregistre votre identifiant et votre mot de passe, comme vos autres applications. Seul un hachage est conservé.</div></div>
+          <div class="field"><label for="emby-host">Emby</label><div class="ctl"><input type="text" id="emby-host" autocomplete="off" spellcheck="false" placeholder="http://192.168.1.10:8096"></div>
+            <div class="ctl"><input type="text" id="emby-key" autocomplete="off" spellcheck="false" placeholder="Clé API Emby (laisser vide pour garder l'actuelle)"></div>
+            <div class="ctl"><button class="btn sm" id="emby-test">Tester</button><button class="btn sm primary" id="emby-save">Enregistrer</button><span class="sub" id="emby-msg"></span></div>
+            <div class="hint">La clé n'est jamais renvoyée à la page, seulement ses 4 derniers caractères. Elle est enregistrée sur le serveur dans un fichier en droits 600.</div></div>
+          <div class="field"><label for="tg-token">Telegram (notifications)</label><div class="ctl"><input type="text" id="tg-token" autocomplete="off" spellcheck="false" placeholder="Jeton du bot (laisser vide pour garder l'actuel)"></div>
+            <div class="ctl"><input type="text" id="tg-chat" autocomplete="off" spellcheck="false" placeholder="Identifiant de conversation"><input type="text" id="tg-thread" autocomplete="off" spellcheck="false" placeholder="Sujet (facultatif)" style="max-width:150px"></div>
+            <div class="ctl"><button class="btn sm" id="tg-test">Tester</button><button class="btn sm primary" id="tg-save">Enregistrer</button><span class="sub" id="tg-msg"></span></div>
+            <div class="hint">Même bot et même conversation que vos autres applications MouFl… Le jeton n'est jamais renvoyé à la page, seulement ses 4 derniers caractères. Chaque type de message se règle dans la carte « Notifications ».</div></div>
+          <div class="field"><label for="arr-sonarr-url">Sonarr (séries et animes)</label><div class="ctl"><input type="text" id="arr-sonarr-url" autocomplete="off" spellcheck="false" placeholder="http://192.168.1.10:8989"></div>
+            <div class="ctl"><input type="text" id="arr-sonarr-key" autocomplete="off" spellcheck="false" placeholder="Clé API Sonarr (laisser vide pour garder l'actuelle)"></div>
+            <div class="ctl"><button class="btn sm" data-arr="sonarr|test">Tester</button><button class="btn sm primary" data-arr="sonarr|save">Enregistrer</button><span class="sub" id="arr-sonarr-msg"></span></div></div>
+          <div class="field"><label for="arr-radarr-url">Radarr (films, facultatif)</label><div class="ctl"><input type="text" id="arr-radarr-url" autocomplete="off" spellcheck="false" placeholder="http://192.168.1.10:7878"></div>
+            <div class="ctl"><input type="text" id="arr-radarr-key" autocomplete="off" spellcheck="false" placeholder="Clé API Radarr (laisser vide pour garder l'actuelle)"></div>
+            <div class="ctl"><button class="btn sm" data-arr="radarr|test">Tester</button><button class="btn sm primary" data-arr="radarr|save">Enregistrer</button><span class="sub" id="arr-radarr-msg"></span></div>
+            <div class="hint">Les clés se trouvent dans Sonarr / Radarr, Réglages &gt; Général. Elles ne sont jamais renvoyées à la page (seulement leurs 4 derniers caractères).</div></div>
+          <div class="field"><label>Home Assistant (facultatif)</label><div class="hint">Pas nécessaire : la couleur Tempo est déjà relevée toute seule. Pour l'envoyer quand même depuis Home Assistant : <span class="mono">POST http://&lt;adresse de MouFlencoder&gt;:8300/hook/tempo</span>, en-tête <span class="mono">X-MFE-Secret</span>, corps <span class="mono">{"today":"bleu","tomorrow":"rouge"}</span>.</div>
+            <div class="ctl"><button class="btn sm" id="hook-gen">Générer un secret</button><span class="sub" id="hook-state"></span></div>
+            <div class="ctl" id="hook-show" hidden><input type="text" id="hook-val" readonly><button class="btn sm" id="hook-copy">Copier</button></div>
+            <div class="hint" id="hook-hint" hidden>Ce secret n'est affiché qu'une fois : copiez-le maintenant. Seul son hachage est conservé.</div></div>
+          <div class="field"><label>Corbeille</label><div class="hint">Les originaux restent dans <span class="mono">MouFlencoder/Corbeille (à la racine de la médiathèque)</span> tant que vous ne les supprimez pas ici.</div></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="actionbar" id="actionbar" hidden>
+  <div class="in">
+    <div><b id="ab-n">0</b> <span class="sub" id="ab-l">sélectionnées</span><div class="sub" id="ab-d"></div></div>
+    <span class="tag ok" id="ab-g"></span>
+    <button class="btn" id="ab-est" title="Estime le gain sur quelques épisodes par team">Estimer d'abord</button>
+    <button class="btn primary" id="ab-add"><span class="long">Ajouter à la file</span><span class="short">Ajouter</span></button>
+    <button class="btn sm" id="ab-clear" aria-label="Tout désélectionner"><span class="long">Tout désélectionner</span><span class="short">✕</span></button>
+  </div>
+</div>
+<div class="modal" id="modal" hidden><div class="box" role="dialog" aria-modal="true" aria-labelledby="m-t"><h3 id="m-t"></h3><p id="m-p" style="margin:0;color:var(--fg2)"></p><div class="bts"><button class="btn" id="m-no">Annuler</button><button class="btn danger" id="m-yes">Confirmer</button></div></div></div>
+<div class="toast" id="toast" hidden></div>
+<script>
+(function(){
+  'use strict';
+  function selBusy(){var g=window.getSelection&&window.getSelection();return !!(g&&!g.isCollapsed&&String(g).length>0)}
+  var $=function(s,r){return (r||document).querySelector(s)}, $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+  function api(path,opt){opt=opt||{};opt.credentials='same-origin';opt.headers={'Content-Type':'application/json'};
+    return fetch(path,opt).then(function(r){if(r.redirected||r.status===401){location.href='/login';throw new Error('connexion requise')}return r.json()})}
+  function post(path,body){return api(path,{method:'POST',body:JSON.stringify(body||{})})}
+  var fmtGo=function(g){return g>=1000?(g/1000).toFixed(2).replace('.',',')+' To':g.toFixed(1).replace('.',',')+' Go'};
+  var fmtMo=function(m){return m>=1000?(m/1000).toFixed(2).replace('.',',')+' Go':Math.round(m)+' Mo'};
+  var pct=function(x){return Math.round(x*100)+' %'};
+  var esc=function(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')};
+  var fmtT=function(s){if(s==null)return '—';s=Math.round(s);var h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?h+' h '+String(m).padStart(2,'0'):m+' min '+String(s%60).padStart(2,'0')};
+  var fmtDate=function(ts){var d=new Date(ts*1000);return d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})};
+  function toast(t){var e=$('#toast');e.textContent=t;e.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(function(){e.hidden=true},2600)}
+  var QL=['Qualité maximale','Très bonne qualité','Équilibrée','Économique','Gain maximal'];
+  var CAT={anime:{t:'Animes',p:'Mouflanimexer garde la main sur les pistes et les sous-titres : MouFlencoder ne change que la vidéo.',h:2.2},
+    series:{t:'Séries',p:'Vidéo GPU, plus remux : audio français par défaut, forcés par défaut, sous-titres ASS au style validé.',h:5},
+    films:{t:'Films',p:'Les films 1080p SDR passent comme les séries. Les 4K, HDR et Dolby Vision sont signalés et ignorés pour l\'instant.',h:25}};
+  var LIB={}, EPS={}, selected={}, openSer={}, openSea={}, filt={anime:{q:'',min:0,hide:true,lim:200},series:{q:'',min:0,hide:true,lim:200},films:{q:'',min:0,hide:true,lim:200}};
+  var ST=null, curView='dashboard', logF='', logQ='', modalYes=null;
+
+  /* ---------- outils sur les données ---------- */
+  function gOf(d,ep){if(!ep.g)return null;var v=ep.g[String(d.qps[d.qpi-1])];return v===undefined?null:v}
+  function listOf(d,sn){var o=[];d.seasons.forEach(function(se){if(sn&&se.s!==sn)return;se.eps.forEach(function(ep){o.push({ep:ep,se:se,sel:!!selected[ep.p],g:gOf(d,ep)})})});return o}
+  function stats(l){var a={n:0,el:0,sz:0,elsz:0,pot:0,sel:0,est:0,ext:0,teams:{}};l.forEach(function(x){var ep=x.ep;a.n++;a.sz+=ep.sz;if(!ep.why){a.el++;a.elsz+=ep.sz;if(x.g!==null){a.est++;a.pot+=ep.sz*x.g;if(ep.gx)a.ext++}if(x.sel)a.sel++;a.teams[ep.tm||'?']=(a.teams[ep.tm||'?']||0)+1}});return a}
+  function gbar(g){return '<div class="gbar'+(g<.3?' low':'')+'"><i style="width:'+Math.max(2,Math.round(g*100))+'%"></i></div>'}
+  function gcell(g,mo,tilde,mono){return '<div style="display:flex;align-items:center;gap:10px">'+gbar(g)+'<span class="mono" style="min-width:92px;text-align:right">'+(tilde?'~':'')+pct(g)+' · '+mo+'</span></div>'}
+  function cbx(a,attr){var all=a.el>0&&a.sel===a.el, some=a.sel>0&&a.sel<a.el;return '<input class="chk" type="checkbox" '+attr+(all?' checked':'')+(some?' data-part="1"':'')+(a.el?'':' disabled')+' aria-label="Sélectionner">'}
+  function teamChips(a,scope,pick){var h='';Object.keys(a.teams).sort().forEach(function(t){h+='<button class="tm'+(pick&&pick[t]?' on':'')+'" data-team="'+scope+'|'+esc(t)+'" title="Cocher ou décocher tous les épisodes de cette team">'+esc(t)+' <b>'+a.teams[t]+'</b></button> '});return h}
+  function teamState(d,sn){var by={};listOf(d,sn).forEach(function(x){if(x.ep.why)return;var t=x.ep.tm||'?';by[t]=by[t]||{n:0,s:0};by[t].n++;if(x.sel)by[t].s++});var st={};Object.keys(by).forEach(function(t){st[t]=by[t].n>0&&by[t].n===by[t].s});return st}
+  function serStatus(d,a){
+    if(!a.el){var w=d.seasons[0]&&d.seasons[0].eps[0]&&d.seasons[0].eps[0].why;var all=d.seasons.every(function(se){return se.eps.every(function(ep){return ep.why===w})});
+      if(all&&(w==='Traité'||w==='Dans la file'))return [w,w==='Traité'?'ok':'run'];if(all&&/Dolby/.test(w||''))return ['Dolby Vision · ignoré','warn'];if(all&&/HDR/.test(w||''))return [w+' · ignoré','mute'];return ['Rien à traiter','mute']}
+    if(!a.est)return [a.el+' à estimer','mute'];return [a.el+' traitable'+(a.el>1?'s':''),'wait'];
+  }
+  function dOf(c,i){return LIB[c]&&LIB[c].series[i]}
+
+  /* ---------- chargement ---------- */
+  function load(c){return api('/api/library?cat='+c).then(function(r){
+    LIB[c]=r;r.series.forEach(function(d,i){d.i=i;d.f=0;d.sz=0;d.seasons.forEach(function(se){se.eps.forEach(function(ep){d.f++;d.sz+=ep.sz;EPS[ep.p]={d:d,ep:ep,se:se}})})});
+    Object.keys(selected).forEach(function(p){if(!EPS[p]||EPS[p].ep.why)delete selected[p]});
+    renderCat(c);updNav();updBar()})}
+  function updNav(){['anime','series','films'].forEach(function(c){var n=LIB[c]?LIB[c].series.filter(function(d){return stats(listOf(d)).el>0}).length:'';$('#c-'+c).textContent=n})}
+  function refresh(){['anime','series','films'].forEach(function(c){if(LIB[c])renderCat(c)});updBar()}
+
+  /* ---------- listes par catégorie ---------- */
+  function renderCat(c){
+    var el=$('#v-'+c), f=filt[c], info=CAT[c], L=LIB[c];
+    if(!L){el.innerHTML='<div class="head"><div><h1>'+info.t+'</h1></div></div><div class="empty">Chargement de la bibliothèque…</div>';return}
+    var rows=L.series.map(function(d){return {d:d,a:stats(listOf(d))}});
+    var pot=0;rows.forEach(function(r){pot+=r.a.pot/1000});
+    var shown=rows.filter(function(r){var g=r.a.elsz&&r.a.est?r.a.pot/r.a.elsz:0;
+      if(f.q&&r.d.n.toLowerCase().indexOf(f.q.toLowerCase())<0)return false;
+      if(r.a.est&&g*100<f.min)return false;
+      if(f.hide&&!r.a.el&&!r.a.sel)return false;return true}).sort(function(a,b){return (b.a.pot-a.a.pot)||(b.a.elsz-a.a.elsz)});
+    var h='<div class="head"><div><h1>'+info.t+'</h1><p>'+info.p+'</p></div><div class="tools"><span class="tag ok">Potentiel estimé : '+fmtGo(pot)+'</span><button class="btn sm" data-reload="1">'+(L.refreshing?'Actualisation…':'Actualiser depuis Emby')+'</button></div></div>';
+    h+='<div class="tools"><input class="search" type="text" data-q="'+c+'" placeholder="Rechercher" value="'+esc(f.q)+'" aria-label="Rechercher"><div class="range">Gain estimé min. <input type="range" min="0" max="80" step="5" value="'+f.min+'" data-min="'+c+'" aria-label="Gain minimum"><b class="mono">'+f.min+' %</b></div><div class="seg"><button data-hide="'+c+'" aria-pressed="'+f.hide+'">Masquer les non traitables</button></div></div>';
+    h+='<div class="note hintmob">Cochez une série entière, une saison ou des épisodes un par un. Les fichiers déjà optimisés, sous le plafond, en HDR ou à peu de gain ne sont pas cochables. « Estimer d\'abord » mesure le gain sur quelques épisodes par team (environ une minute chacun) et l\'étend aux autres, signalé par « ~ ».</div>';
+    h+='<div class="tblwrap cat"><table><thead><tr><th style="width:44px"></th><th>'+(c==='films'?'Film':'Série · saison · épisode')+'</th><th class="r">Fichiers</th><th class="r">Taille</th><th style="min-width:210px">Gain estimé</th><th>Statut</th></tr></thead><tbody>';
+    if(!shown.length)h+='<tr><td colspan="6" class="empty">'+(L.series.length?'Rien ne correspond à ces filtres.':'La bibliothèque est vide ou en cours de lecture depuis Emby.')+'</td></tr>';
+    shown.slice(0,f.lim).forEach(function(r){
+      var d=r.d,a=r.a,i=d.i,g=a.est?a.pot/a.elsz:0,st=serStatus(d,a),op=!!openSer[c+'|'+i],sid=c+'|'+i;
+      h+='<tr class="row'+(a.sel?' sel':'')+(op?' open':'')+'" data-ser="'+sid+'"><td>'+cbx(a,'data-chk="'+sid+'||"')+'</td><td><span class="chev">▸</span> <span class="title">'+esc(d.n)+'</span>'+(d.qpi!==3?' <span class="tag info" style="margin-left:6px">'+QL[d.qpi-1]+'</span>':'')+(a.sel?' <span class="tag ok" style="margin-left:6px">'+a.sel+' coché'+(a.sel>1?'s':'')+'</span>':'')+'<div class="mob">'+d.f+' fichiers · '+fmtGo(d.sz/1000)+' · <span class="tag '+st[1]+'">'+st[0]+'</span></div></td>';
+      h+='<td class="r mono">'+d.f+' fichier'+(d.f>1?'s':'')+'</td><td class="r mono">'+fmtGo(d.sz/1000)+'</td><td>'+(a.est?gcell(g,fmtGo(a.pot/1000),a.ext>0):'<span class="sub">'+(a.el?'à estimer':'—')+'</span>')+'</td><td><span class="tag '+st[1]+'">'+st[0]+'</span></td></tr>';
+      if(!op)return;
+      if(a.el){var lbl=a.est?QL[d.qpi-1]+' · ≈ −'+Math.round(g*100)+' %':QL[d.qpi-1]+' · à estimer';
+        h+='<tr class="tool"><td></td><td colspan="5"><div class="qs"><b>Qualité ↔ Gain</b><span class="sub">Qualité</span><input type="range" min="1" max="5" step="1" value="'+d.qpi+'" data-qs="'+sid+'" aria-label="Curseur qualité ou gain pour cette série"><span class="sub">Gain</span><span class="tag ok" id="qs-'+sid+'">'+lbl+'</span><span class="sub mono">qp '+d.qps[d.qpi-1]+'</span></div><div class="sub" style="margin-bottom:8px">Estimation à la louche, pour choisir : elle se précise à l\'encodage. Pour une série à voir sur grand écran, montez vers « Qualité ». Pour une série regardée sur tablette, vers « Gain ».</div>'+(c!=='films'?'<div class="toolbar"><button class="btn sm" data-all="'+sid+'|1">Tout cocher</button> <button class="btn sm" data-all="'+sid+'|0">Rien</button><span class="sub">Par team, sur toutes les saisons :</span>'+teamChips(a,sid+'|0',teamState(d,0))+'</div>':'')+'</td></tr>'}
+      d.seasons.forEach(function(se){
+        var sl=listOf(d,se.s), sa=stats(sl), key=sid+'|'+se.s, so=!!openSea[key]||c==='films';
+        if(c!=='films'){var sg=sa.est?sa.pot/sa.elsz:0;
+          h+='<tr class="row lvl1'+(so?' open':'')+(sa.sel?' sel':'')+'" data-sea="'+key+'"><td>'+cbx(sa,'data-chk="'+sid+'|'+se.s+'|"')+'</td><td><span class="chev">▸</span> <span class="title">Saison '+se.s+'</span><div class="mob">'+se.eps.length+' épisodes · '+fmtGo(sa.sz/1000)+' · '+(sa.el?sa.el+' / '+se.eps.length+' traitables':'rien à traiter')+'</div><div class="tmrow">'+teamChips(sa,key,teamState(d,se.s))+'</div></td>';
+          h+='<td class="r mono">'+se.eps.length+' épisodes</td><td class="r mono">'+fmtGo(sa.sz/1000)+'</td><td>'+(sa.est?gcell(sg,fmtGo(sa.pot/1000),sa.ext>0):'<span class="sub">'+(sa.el?'à estimer':'—')+'</span>')+'</td><td><span class="tag '+(sa.el?'wait':'mute')+'">'+(sa.el?sa.el+' / '+se.eps.length+' traitables':'Rien à traiter')+'</span></td></tr>'}
+        if(!so)return;
+        se.eps.forEach(function(ep){
+          var on=!!selected[ep.p],ok=!ep.why,ge=gOf(d,ep);
+          h+='<tr class="row lvl2'+(on?' sel':'')+'" data-epr="'+key+'|'+ep.e+'"><td><input class="chk" type="checkbox" data-chk="'+key+'|'+ep.e+'"'+(on?' checked':'')+(ok?'':' disabled')+' aria-label="Sélectionner"></td>';
+          h+='<td><span class="mono">'+(c==='films'?'Film':'S'+String(se.s).padStart(2,'0')+'E'+String(ep.e).padStart(2,'0'))+'</span> <span class="tag mute" style="margin-left:8px">'+esc(ep.tm||'équipe inconnue')+'</span><div class="mob">'+(ep.r?ep.r+' · ':'')+(ep.hev?'hevc':'h264')+' · '+fmtMo(ep.sz)+' · '+(ok?(ge===null?'à estimer':'traitable'):esc(ep.why))+'</div></td>';
+          h+='<td class="r mono sub" style="white-space:nowrap">'+(ep.r?ep.r+' · ':'')+(ep.hev?'hevc':'h264')+'</td><td class="r mono">'+fmtMo(ep.sz)+'</td>';
+          h+='<td>'+(ge===null?'<span class="sub">'+(ok?'à estimer':'—')+'</span>':gcell(ge,fmtMo(Math.round(ep.sz*ge)),ep.gx))+'</td>';
+          h+='<td>'+(ok?'<span class="tag '+(ge===null?'mute':'wait')+'">'+(ge===null?'À estimer':'Traitable')+'</span>':'<span class="tag '+(ep.why==='Traité'?'ok':'mute')+'">'+esc(ep.why)+'</span>')+'</td></tr>';
+        });
+      });
+    });
+    h+='</tbody></table></div>';
+    if(shown.length>f.lim)h+='<div style="display:flex;gap:10px;align-items:center"><span class="sub">'+f.lim+' affichés sur '+shown.length+'</span><button class="btn sm" data-more="'+c+'">Afficher plus</button></div>';
+    el.innerHTML=h;
+    $$('input[data-part]',el).forEach(function(x){x.indeterminate=true});
+  }
+  function setEps(list,on){list.forEach(function(x){if(x.ep.why)return;if(on)selected[x.ep.p]=1;else delete selected[x.ep.p]})}
+  function updBar(){
+    var n=0,go=0,gain=0,hrs=0,ser={};
+    Object.keys(selected).forEach(function(p){var x=EPS[p];if(!x)return;n++;ser[x.d.c+'|'+x.d.i]=1;go+=x.ep.sz/1000;var g=gOf(x.d,x.ep);if(g!==null)gain+=x.ep.sz*g/1000;hrs+=CAT[x.d.c].h/60});
+    var b=$('#actionbar');b.hidden=!n||['anime','series','films'].indexOf(curView)<0;if(!n)return;
+    $('#ab-n').textContent=n;$('#ab-l').textContent=n>1?'épisodes cochés':'épisode coché';
+    $('#ab-d').textContent=Object.keys(ser).length+' série'+(Object.keys(ser).length>1?'s':'')+' · '+fmtGo(go)+' · environ '+(hrs<1?Math.round(hrs*60)+' min':hrs.toFixed(1).replace('.',',')+' h')+' de GPU';
+    $('#ab-g').textContent=gain?'≈ '+fmtGo(gain)+' à récupérer':'gain à estimer';
+  }
+  function groupSel(){var g={};Object.keys(selected).forEach(function(p){var x=EPS[p];if(!x)return;var k=x.d.c+'|'+x.d.i;(g[k]=g[k]||{d:x.d,eps:[]}).eps.push(x.ep)});return g}
+
+  /* ---------- événements ---------- */
+  document.addEventListener('input',function(e){
+    var t=e.target,ds=t.dataset;
+    if(ds.qs){var p=ds.qs.split('|'),d=dOf(p[0],+p[1]);d.qpi=+t.value;var a=stats(listOf(d)),g=a.est?a.pot/a.elsz:0;var lb=$('#qs-'+ds.qs);if(lb)lb.textContent=QL[d.qpi-1]+' · '+(a.est?'≈ −'+Math.round(g*100)+' %':'à estimer');return}
+    if(ds.q){filt[ds.q].q=t.value;var pos=t.selectionStart;renderCat(ds.q);var n=$('[data-q="'+ds.q+'"]');n.focus();n.setSelectionRange(pos,pos)}
+    else if(ds.min){filt[ds.min].min=+t.value;renderCat(ds.min);var m=$('[data-min="'+ds.min+'"]');m&&m.focus()}
+    else if(ds.set&&t.type==='range'){var v=$('[data-val="'+ds.set+'"]');if(v)v.textContent=fmtSet(ds.set,t.value)}
+  });
+  document.addEventListener('change',function(e){
+    var t=e.target,ds=t.dataset;
+    if(ds.qs){var p=ds.qs.split('|'),d=dOf(p[0],+p[1]);post('/api/prefs',{series:d.n,qpi:d.qpi,min_gain:d.min});refresh()}
+    else if(ds.mg){var q=ds.mg.split('|'),d2=dOf(q[0],+q[1]);d2.min=+t.value;post('/api/prefs',{series:d2.n,qpi:d2.qpi,min_gain:d2.min})}
+    else if(ds.set){var val=t.type==='checkbox'?t.checked:+t.value;var o={};o[ds.set]=val;post('/api/settings',o).then(function(s){applySettings(s);poll()})}
+  });
+  document.addEventListener('click',function(e){
+    var t=e.target,b;
+    if(t.closest('[data-reload]')){post('/api/library/refresh');loadAll();toast('Tailles relues sur le disque, actualisation depuis Emby lancée');setTimeout(function(){loadAll()},9000);return}
+    if((b=t.closest('[data-more]'))){filt[b.dataset.more].lim+=300;renderCat(b.dataset.more);return}
+    if((b=t.closest('[data-hide]'))){var c=b.dataset.hide;filt[c].hide=!filt[c].hide;renderCat(c);return}
+    if((b=t.closest('[data-chk]'))){var p=b.dataset.chk.split('|'),d=dOf(p[0],+p[1]),sn=p[2]?+p[2]:0,en=p[3]?+p[3]:0;
+      setEps(listOf(d,sn).filter(function(x){return !en||x.ep.e===en}),b.checked);refresh();return}
+    if((b=t.closest('[data-team]'))){var q=b.dataset.team.split('|'),d2=dOf(q[0],+q[1]);var sn2,team;if(q.length===4){sn2=+q[2];team=q[3]}else{sn2=0;team=q[2]}
+      var l=listOf(d2,sn2).filter(function(x){return !x.ep.why&&(x.ep.tm||'?')===team}),all=l.length&&l.every(function(x){return x.sel});setEps(l,!all);refresh();return}
+    if((b=t.closest('[data-all]'))){var a=b.dataset.all.split('|');setEps(listOf(dOf(a[0],+a[1]),0),a[2]==='1');refresh();return}
+    if((b=t.closest('tr[data-sea]'))&&!t.closest('input')){openSea[b.dataset.sea]=!openSea[b.dataset.sea];refresh();return}
+    if((b=t.closest('tr[data-ser]'))&&!t.closest('input')){var k=b.dataset.ser;openSer[k]=!openSer[k];refresh();return}
+    if((b=t.closest('tr[data-epr]'))&&!t.closest('input')){var bx=b.querySelector('input');if(bx&&!bx.disabled)bx.click();return}
+    if((b=t.closest('[data-qt]'))){var tab=b.dataset.qt;$('#qt-list').hidden=tab!=='list';$('#qt-pauses').hidden=tab!=='pauses';$$('[data-qt]').forEach(function(x){x.setAttribute('aria-pressed',x===b)});return}
+    if((b=t.closest('[data-qk]'))){var k=b.dataset.qk.split('|');post('/api/queue/kind',{ids:[+k[0]],kind:k[1]}).then(pollQueue);return}
+    if((b=t.closest('[data-qsel]'))){var all=$$('[data-qsel]'),ix=all.indexOf(b);
+      if(e.shiftKey&&qLast>=0&&qLast!==ix){for(var i=Math.min(ix,qLast);i<=Math.max(ix,qLast);i++){all[i].checked=b.checked;qsel[all[i].dataset.qsel]=b.checked}}
+      else qsel[b.dataset.qsel]=b.checked;
+      qLast=ix;updQ();return}
+    if(t.id==='q-none'){qsel={};$$('[data-qsel]').forEach(function(c){c.checked=false});updQ();return}
+    if(t.id==='q-all'){$$('[data-qsel]').forEach(function(c){c.checked=t.checked;qsel[c.dataset.qsel]=t.checked});updQ();return}
+    if((b=t.closest('[data-qa]'))){var a=b.dataset.qa,ids=qIds();if(!ids.length)return;
+      var done=function(msg){toast(msg);if(a==='remove'||a==='encode'||a==='estimate')qsel={};pollQueue()};
+      if(a==='top'||a==='bottom')post('/api/queue/move',{dir:a,ids:ids}).then(function(){done(ids.length+' fichier(s) mis '+(a==='top'?'tout en haut':'tout en bas'))});
+      else if(a==='remove')modal('Retirer '+ids.length+' fichier(s) de la file ?','Les fichiers ne sont pas modifiés, ils sortent seulement de la file.',function(){post('/api/queue/remove',{ids:ids}).then(function(){done(ids.length+' fichier(s) retiré(s)')})},'Retirer');
+      else post('/api/queue/kind',{ids:ids,kind:a}).then(function(r){done((r.changed||0)+' fichier(s) passé(s) en '+(a==='encode'?'encodage':'estimation'))});
+      return}
+    if((b=t.closest('[data-qm]'))){var m=b.dataset.qm.split('|');if(m[1]==='x')post('/api/queue/remove',{id:+m[0]}).then(pollQueue);
+      else if((m[1]==='top'||m[1]==='bottom')&&qsel[m[0]]&&qIds().length>1){var sl=qIds();post('/api/queue/move',{dir:m[1],ids:sl}).then(function(){toast(sl.length+' fichiers cochés mis '+(m[1]==='top'?'tout en haut':'tout en bas'));pollQueue()})}
+      else post('/api/queue/move',{id:+m[0],dir:m[1]}).then(pollQueue);return}
+    if((b=t.closest('[data-restore]'))){var id=+b.dataset.restore;modal('Restaurer cet original ?','L\'original reprend sa place. La version encodée est mise de côté dans le dossier « Remplaces », rien n\'est perdu.',function(){post('/api/trash/restore',{id:id}).then(function(r){toast(r.error||'Original restauré');loadTrash();loadAll()})},'Restaurer');return}
+    if((b=t.closest('[data-del]'))){var id2=+b.dataset.del;modal('Supprimer définitivement ?','L\'original sera effacé du NAS. Impossible à annuler.',function(){post('/api/trash/delete',{id:id2,confirm:true}).then(function(r){toast(r.error||'Original supprimé');loadTrash()})},'Supprimer');return}
+    if((b=t.closest('[data-enc]'))){post('/api/queue/add',{paths:[b.dataset.enc],cat:b.dataset.cat,front:true}).then(function(r){toast(r.added?'Ajouté en tête de file : il démarre dès que le fichier en cours est fini':'Déjà dans la file');pollQueue()});return}
+    if((b=t.closest('[data-lf]'))){logF=b.dataset.lf;renderLogF();loadLog();return}
+  });
+  $('#ab-clear').onclick=function(){selected={};refresh()};
+  $('#ab-add').onclick=function(){var g=groupSel(),keys=Object.keys(g),n=0,done=0;
+    keys.forEach(function(k){var x=g[k],d=x.d;post('/api/queue/add',{paths:x.eps.map(function(e){return e.p}),series:d.n,cat:d.c,qp:d.qps[d.qpi-1],min_gain:d.min}).then(function(r){n+=r.added||0;if(++done===keys.length){toast(n+' fichier(s) ajouté(s) à la file');selected={};loadAll();pollQueue()}})})};
+  $('#ab-est').onclick=function(){var g=groupSel(),keys=Object.keys(g),n=0,done=0;
+    keys.forEach(function(k){var x=g[k],d=x.d,by={};x.eps.forEach(function(ep){if(ep.g&&!ep.gx)return;(by[ep.tm||'?']=by[ep.tm||'?']||[]).push(ep)});
+      var paths=[];Object.keys(by).forEach(function(t){var l=by[t].sort(function(a,b){return a.sz-b.sz});paths.push(l[0].p);if(l.length>1)paths.push(l[l.length-1].p)});
+      post('/api/queue/add',{paths:paths,kind:'estimate',series:d.n,cat:d.c}).then(function(r){n+=r.added||0;if(++done===keys.length){toast(n+' estimation(s) ajoutée(s) à la file, environ une minute chacune');pollQueue()}})})};
+  function allKind(k,txt){post('/api/queue/kind',{kind:k}).then(function(r){toast(r.changed?r.changed+' fichier(s) passé(s) en '+txt:'Rien à changer');pollQueue()})}
+  $('#q-all-est').onclick=function(){allKind('estimate','estimation')};$('#q-all-enc').onclick=function(){allKind('encode','encodage')};
+  $('#btn-cancel').onclick=function(){modal('Annuler le fichier en cours ?','L\'encodage s\'arrête, l\'original reste intact et rien n\'est remplacé.',function(){post('/api/queue/cancel').then(function(){toast('Annulation demandée')})},'Annuler le fichier')};
+  $('#btn-pause').onclick=function(){post('/api/pause',{paused:!(ST&&ST.paused)}).then(function(){toast(ST&&ST.paused?'File relancée':'File en pause : l\'encodage en cours est gelé tout de suite');poll()})};
+  function modal(t,p,yes,lbl){$('#m-t').textContent=t;$('#m-p').textContent=p;$('#m-yes').textContent=lbl||'Confirmer';modalYes=yes;$('#modal').hidden=false;$('#m-no').focus()}
+  $('#m-no').onclick=function(){$('#modal').hidden=true};
+  $('#m-yes').onclick=function(){$('#modal').hidden=true;modalYes&&modalYes()};
+  $('#btn-empty').onclick=function(){api('/api/trash').then(function(l){var tot=l.reduce(function(s,r){return s+r.avant_mo},0);
+    modal('Vider toute la Corbeille ?',l.length+' originaux ('+fmtGo(tot/1000)+') seront effacés pour de bon. Les versions encodées restent en place.',function(){post('/api/trash/empty',{confirm:true}).then(function(r){toast(r.deleted+' supprimé(s)'+(r.errors&&r.errors.length?', '+r.errors.length+' refusé(s) par le NAS':''));loadTrash()})},'Tout supprimer')})};
+
+  /* ---------- tableau de bord ---------- */
+  function chart(daily){
+    var days=[],now=new Date();for(var i=13;i>=0;i--){var d=new Date(now.getTime()-i*86400000);days.push(d.toISOString().slice(0,10))}
+    var cum=0,pts=days.map(function(k){cum+=(daily[k]||0)/1000;return cum});
+    if(!cum){$('#chart').innerHTML='<div class="sub">La courbe apparaîtra après le premier remplacement.</div>';return}
+    var W=640,H=210,L=44,B=26,T=10,R=10,mx=Math.max(1,Math.ceil(cum/50)*50),x=function(i){return L+(W-L-R)*i/13},y=function(v){return T+(H-T-B)*(1-v/mx)};
+    var line=pts.map(function(v,i){return (i?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)}).join(' ');
+    var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="Espace récupéré cumulé sur 14 jours">';
+    for(var k=0;k<=4;k++){var v=mx*k/4;s+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y(v)+'" y2="'+y(v)+'" stroke="var(--line-soft)"/><text x="'+(L-8)+'" y="'+(y(v)+4)+'" text-anchor="end">'+Math.round(v)+'</text>'}
+    [0,6,13].forEach(function(i){s+='<text x="'+x(i)+'" y="'+(H-8)+'" text-anchor="'+(i===13?'end':i===0?'start':'middle')+'">'+(i===13?'Auj.':'J-'+(13-i))+'</text>'});
+    s+='<path d="'+line+' L'+x(13)+' '+(H-B)+' L'+x(0)+' '+(H-B)+' Z" fill="var(--gain)" opacity=".13"/><path d="'+line+'" fill="none" stroke="var(--gain)" stroke-width="2.4" stroke-linejoin="round"/><circle cx="'+x(13)+'" cy="'+y(pts[13])+'" r="5" fill="var(--gain)"/></svg>';
+    $('#chart').innerHTML=s}
+  var LS={REMPLACE:['Remplacé','ok'],REMUXE:['Remuxé · pistes harmonisées','ok'],REJETE_GAIN:['Refusé · gain trop faible','warn'],IGNORE_ESTIMATION:['Ignoré · estimation','mute'],ESTIMATION:['Estimation','info'],REMPLACE_ANCIEN:['Ancien remplacement (refait ou restauré)','mute'],ERREUR:['Erreur · original intact','bad'],CORBEILLE_SUPPR:['Original supprimé','mute'],DOUBLON_SUPPR:['Doublon SD supprimé','mute'],RESTAURE:['Original restauré','info'],ANOMALIE:['Anomalie','bad']};
+  function loadDash(){
+    api('/api/stats').then(function(s){
+      $('#k-saved').innerHTML=(s.saved_mo>=1000?(s.saved_mo/1000).toFixed(1).replace('.',','):Math.round(s.saved_mo/1000*10)/10).toString().replace('.',',')+'<small>Go</small>';
+      $('#k-saved-l').textContent=s.replaced?s.replaced+' fichier'+(s.replaced>1?'s':'')+' remplacé'+(s.replaced>1?'s':''):'Aucun fichier remplacé pour l\'instant.';
+      $('#k-avg').innerHTML=s.replaced?s.avg_gain+'<small>%</small>':'—';$('#k-rep').textContent=s.replaced;
+      $('#k-ref').textContent=(s.counts.REJETE_GAIN||0)+(s.counts.IGNORE_ESTIMATION||0);$('#k-trash').innerHTML=(s.trash_mo/1000).toFixed(1).replace('.',',')+'<small>Go</small>';
+      chart(s.daily);var names={anime:'Animes',series:'Séries',films:'Films'},tot=Math.max(1,s.saved_mo),h='';
+      Object.keys(names).forEach(function(k){var c=s.by_cat[k]||{n:0,saved:0,avant:0};h+='<div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span class="title">'+names[k]+'</span><span class="mono">'+fmtGo(c.saved/1000)+' · <span class="up">'+(c.avant?Math.round(c.saved/c.avant*100):0)+' %</span></span></div><div class="gbar" style="height:9px"><i style="width:'+(c.saved/tot*100)+'%;background:var(--accent)"></i></div></div>'});
+      $('#catbars').innerHTML=h});
+    api('/api/registry?limit=6').then(function(r){$('#recent').innerHTML=r.length?r.map(function(x){var s=LS[x.statut]||[x.statut,'mute'];return '<div style="display:flex;gap:10px;align-items:center;justify-content:space-between"><div style="min-width:0"><div class="title mono" style="font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(x.name)+'</div><div class="sub">'+fmtDate(x.ts)+'</div></div><span class="tag '+s[1]+'">'+(x.statut==='REMPLACE'?'−'+x.gain+' %':s[0])+'</span></div>'}).join(''):'<div class="sub">Rien dans le registre pour l\'instant.</div>'})}
+
+  /* ---------- file, corbeille, registre ---------- */
+  var STEPS=['Vérifications','Estimation','Encodage GPU','Pistes, sous-titres et contrôles','Remplacement'];
+  function liveHtml(s){
+    if(!s.job)return '<div class="sub">Aucun fichier en cours.'+(s.blocked?' <b>En attente : '+esc(s.blocked)+'</b>':'')+'</div>';
+    var nm=s.job.path.split('/').pop();
+    return '<div class="title mono" style="font-size:13px;word-break:break-all">'+esc(nm)+'</div><div class="sub" style="margin:4px 0 12px">'+esc(s.step||'')+(s.job.kind==='estimate'?' · estimation':s.job.kind==='remux'?' · remux seul, sans réencodage':' · qp '+s.job.qp)+(s.blocked?' · <b style="color:var(--warn)">en pause : '+esc(s.blocked)+'</b>':'')+((s.throttle||100)<100?' · <b style="color:var(--warn)">ralenti à '+s.throttle+' % pour la chaleur</b>':'')+'</div><div class="film"><i style="width:'+(s.pct||0)+'%"></i></div><div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div>Avancement<b>'+Math.round(s.pct||0)+' %</b></div><div>Vitesse<b>'+(s.fps?Math.round(s.fps)+' i/s':'—')+'</b></div><div>Reste<b>'+fmtT(s.eta)+'</b></div><div>Durée<b>'+(s.dur?fmtT(s.dur):'—')+'</b></div><div>Taille d\'origine<b>'+(s.size?fmtMo(s.size):'—')+'</b></div><div>Taille visée<b>'+(s.tgt?'≈ '+fmtMo(s.tgt):'—')+'</b></div></div>'}
+  function renderQueueView(s,q){if(selBusy())return;
+    var cur='';
+    if(s.job){var idx=Math.max(0,STEPS.indexOf(s.step)),nm=s.job.path.split('/').pop(),ex=EPS[s.job.path];
+      cur='<h2>En cours <span class="tag run">'+esc(s.step||'')+'</span></h2><div class="title mono" style="word-break:break-all">'+esc(nm)+'</div><div class="sub" style="margin:4px 0 14px">'+esc(s.job.path.replace(nm,''))+'</div>';
+      if(s.job.kind!=='estimate'&&s.job.kind!=='remux')cur+='<div class="steps" style="margin-bottom:16px">'+STEPS.map(function(n,i){return '<div class="step '+(i<idx?'done':i===idx?'now':'')+'"><b>'+(i+1)+' · '+n.replace('Pistes, sous-titres et contrôles','Pistes et contrôles')+'</b>'+(i<idx?'terminé':i===idx?(i===2?Math.round(s.pct||0)+' %':'en cours'):'en attente')+'</div>'}).join('')+'</div>';
+      cur+='<div class="film"><i style="width:'+(s.pct||0)+'%"></i></div><div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div>Durée de l\'épisode<b>'+(s.dur?fmtT(s.dur):'—')+'</b></div><div>Taille visée<b>'+(s.tgt?'≈ '+fmtMo(s.tgt):'—')+'</b></div><div>Vitesse<b>'+(s.fps?Math.round(s.fps)+' i/s':'—')+'</b></div><div>Temps restant<b>'+fmtT(s.eta)+'</b></div><div>Taille d\'origine<b>'+(s.size?fmtMo(s.size):(ex?fmtMo(ex.ep.sz):'—'))+'</b></div><div>Qualité<b>'+(s.job.kind==='estimate'?'estimation':'qp '+s.job.qp)+'</b></div></div>'+(s.blocked?'<div class="note warn" style="margin-top:12px">'+(s.paused?(s.frozen?'Encodage gelé (pause manuelle) : il reprend exactement là où il s\'est arrêté quand tu cliques sur « Reprendre ».':'Pause demandée : l\'étape en cours (vérifications, copie ou remux) se termine, puis plus rien ne démarre. L\'encodage lui-même se gèle tout de suite.'):'En pause : '+esc(s.blocked)+'. Reprise automatique dès que c\'est levé.')+'</div>':'')}
+    else cur='<h2>En cours <span class="tag mute">Au repos</span></h2><div class="sub">Aucun fichier en cours.'+(s.blocked?' <b>En attente : '+esc(s.blocked)+'</b>':'')+'</div>';
+    $('#q-current').innerHTML=cur;$('#btn-cancel').hidden=!s.job;
+    var l=q.filter(function(x){return x.status==='queued'});
+    $('#qlist').innerHTML=l.length?l.map(function(x,i){return '<div class="qrow"><span class="mono sub qnum">'+(i+1)+'</span><div style="min-width:0"><label class="title mono qname"><input type="checkbox" data-qsel="'+x.id+'" '+(qsel[x.id]?'checked ':'')+'aria-label="Cocher"><span>'+esc(x.name)+'</span></label><div class="sub">'+esc(x.series||x.cat)+' · '+(x.kind==='estimate'?'estimation':x.kind==='remux'?'remux seul (harmonisation)':'qp '+x.qp)+'</div></div><span class="col3">'+(x.kind==='remux'?'':'<span class="seg" role="group" aria-label="Type de traitement"><button data-qk="'+x.id+'|encode" aria-pressed="'+(x.kind!=='estimate')+'">Encoder</button><button data-qk="'+x.id+'|estimate" aria-pressed="'+(x.kind==='estimate')+'">Estimer</button></span>')+'</span><span class="sub col4">en attente</span><span class="ic"><button data-qm="'+x.id+'|top" aria-label="Tout en haut">⤒</button><button data-qm="'+x.id+'|up" aria-label="Monter">↑</button><button data-qm="'+x.id+'|down" aria-label="Descendre">↓</button><button data-qm="'+x.id+'|bottom" aria-label="Tout en bas">⤓</button><button data-qm="'+x.id+'|x" aria-label="Retirer">✕</button></span></div>'}).join(''):'<div class="empty">La file est vide. Cochez des épisodes dans les listes puis « Ajouter à la file ».</div>';updQ()}
+  function loadTrash(){api('/api/trash').then(function(l){$('#c-trash').textContent=l.length||'';
+    $('#trashbody').innerHTML=l.map(function(r){return '<tr><td class="mono" style="font-size:12.5px">'+esc(r.name)+'</td><td>'+esc(r.profil)+'</td><td class="r mono">'+fmtMo(r.avant_mo)+'</td><td class="r mono">'+fmtMo(r.apres_mo)+'</td><td class="r mono up">'+r.gain+' %</td><td class="sub">'+fmtDate(r.ts)+'</td><td class="r" style="white-space:nowrap"><button class="btn sm" data-restore="'+r.id+'">Restaurer</button> <button class="btn sm danger" data-del="'+r.id+'">Supprimer</button></td></tr>'}).join('')||'<tr><td colspan="7" class="empty">La Corbeille est vide.</td></tr>';
+    $('#btn-empty').disabled=!l.length})}
+  function renderLogF(){var o=[['','Tout'],['REMPLACE','Remplacés'],['REMUXE','Remuxés'],['REJETE_GAIN','Refusés'],['IGNORE_ESTIMATION','Ignorés'],['ESTIMATION','Estimations'],['ERREUR','Erreurs']];$('#logf').innerHTML=o.map(function(x){return '<button data-lf="'+x[0]+'" aria-pressed="'+(logF===x[0])+'">'+x[1]+'</button>'}).join('')}
+  function loadLog(){api('/api/registry?statut='+encodeURIComponent(logF)+'&q='+encodeURIComponent(logQ)+'&limit=2000').then(function(r){
+    $('#logbody').innerHTML=r.map(function(x){var s=LS[x.statut]||[x.statut,'mute'];return '<tr><td class="sub mono" style="white-space:nowrap">'+fmtDate(x.ts)+'</td><td><span class="tag '+s[1]+'">'+s[0]+'</span></td><td class="mono" style="font-size:12.5px">'+esc(x.name)+(x.detail?'<div class="sub">'+esc(x.detail)+'</div>':'')+'</td><td class="r mono">'+(x.avant_mo?fmtMo(x.avant_mo):'—')+'</td><td class="r mono">'+(x.apres_mo?fmtMo(x.apres_mo):'—')+'</td><td class="r mono '+(x.statut==='REMPLACE'?'up':'')+'">'+(x.gain?x.gain+' %':'—')+'</td><td class="r mono '+(x.statut==='REMPLACE'?'up':'')+'">'+(x.avant_mo&&x.apres_mo&&x.avant_mo>x.apres_mo?fmtMo(x.avant_mo-x.apres_mo):'—')+'</td><td class="r">'+(x.statut==='ESTIMATION'||x.statut==='ERREUR'?'<button class="btn sm" data-enc="'+esc(x.path)+'" data-cat="'+esc(x.profil)+'">Encoder</button>':'')+'</td></tr>'}).join('')||'<tr><td colspan="8" class="empty">Rien dans le registre pour ce filtre.</td></tr>'})}
+  var lqt;$('#logq').addEventListener('input',function(){clearTimeout(lqt);lqt=setTimeout(function(){logQ=$('#logq').value;loadLog()},300)});
+
+  /* ---------- réglages ---------- */
+  function fmtSet(k,v){if(k.indexOf('target_')===0&&!v)return 'désactivée';if(k==='qp_max')return 'qp '+v;if(k==='skip_x265_mo22')return +v?v+' Mo / 22 min':'désactivé';if(k==='skip_video_pct')return +v?v+' %':'désactivé';if(k==='tg_daily_hour')return v+' h';if(k==='tg_pause_min')return v+' min';return k==='min_gain'||k==='est_min'||k==='min_pct'?v+' %':(k==='temp_max'||k==='temp_cible')?(k==='temp_cible'&&!v?'désactivé':v+' °C'):v+' Mo'}
+  function applySettings(s){$$('[data-set]').forEach(function(i){var k=i.dataset.set;if(i.type==='checkbox')i.checked=!!s[k];else i.value=s[k];var v=$('[data-val="'+k+'"]');if(v)v.textContent=fmtSet(k,s[k])})}
+  function tempoTiles(s){var t=s.tempo||{},nm={bleu:'Bleu',blanc:'Blanc',rouge:'Rouge'};function tile(l,c,sub){return '<div class="tt td-'+(c||'inconnu')+'"><span>'+l+'</span><b>'+(c?nm[c]:'Inconnu')+'</b><small>'+sub+'</small></div>'}
+    $('#tempo-tiles').innerHTML=tile('Aujourd\'hui',t.today,'jusqu\'à demain 6 h')+tile('Demain',t.tomorrow,'annoncé la veille');
+    $('#tempo-ts').textContent=t.ts?'Dernière lecture : '+fmtDate(t.ts)+(t.src?' · '+t.src:''):'Aucune couleur reçue pour l\'instant : la file reste en pause par prudence tant que la couleur est inconnue.'}
+
+  /* ---------- clés : Emby et Home Assistant ---------- */
+  function loadTg(){api('/api/settings/telegram').then(function(t){$('#tg-token').value='';$('#tg-chat').value=t.chat_id||'';$('#tg-thread').value=t.thread_id||'';$('#tg-msg').textContent=t.configured?'Configuré (jeton '+t.hint+')':'Pas encore configuré'})}
+  function tgSend(test){var b={action:test?'test':'save',token:$('#tg-token').value.trim(),chat_id:$('#tg-chat').value.trim(),thread_id:$('#tg-thread').value.trim()};
+    $('#tg-msg').textContent=test?'Envoi du message…':'Enregistrement…';fetch('/api/settings/telegram',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json()}).then(function(r){$('#tg-msg').textContent=r.message||r.error||'';if(r.ok&&!test){toast('Telegram enregistré');loadTg()}})}
+  $('#tg-test').onclick=function(){tgSend(true)};$('#tg-save').onclick=function(){tgSend(false)};
+  function loadArr(){api('/api/settings/arr').then(function(r){['sonarr','radarr'].forEach(function(n){$('#arr-'+n+'-url').value=r[n].url||'';$('#arr-'+n+'-key').value='';$('#arr-'+n+'-msg').textContent=r[n].configured?'Configuré (clé '+r[n].hint+')':'Pas encore configuré'})})}
+  function arrSend(n,test){var b={which:n,action:test?'test':'save',url:$('#arr-'+n+'-url').value.trim(),key:$('#arr-'+n+'-key').value.trim()},m=$('#arr-'+n+'-msg');m.textContent=test?'Test…':'Enregistrement…';
+    fetch('/api/settings/arr',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json()}).then(function(r){m.textContent=r.message||r.error||'';if(r.ok&&!test){toast(n+' enregistré');loadArr()}})}
+  document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-arr]');if(b){var p=b.dataset.arr.split('|');arrSend(p[0],p[1]==='test')}});
+  function loadEmby(){loadTg();loadArr();api('/api/settings/emby').then(function(e){$('#emby-host').value=e.host||'';$('#emby-key').value='';$('#emby-msg').textContent=e.configured?'Clé enregistrée ('+e.hint+')':'Aucune clé enregistrée'});api('/api/settings/hook').then(function(h){$('#hook-state').textContent=h.configured?'Un secret est enregistré.':'Aucun secret.'})}
+  function embySend(test){var b={host:$('#emby-host').value.trim(),test:!!test};var k=$('#emby-key').value.trim();if(k)b.api_key=k;
+    $('#emby-msg').textContent='Vérification…';fetch('/api/settings/emby',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json()}).then(function(r){$('#emby-msg').textContent=r.message||r.error||'';if(r.ok&&!test){toast('Emby enregistré');loadEmby();loadAll()}})}
+  $('#emby-test').onclick=function(){embySend(true)};$('#emby-save').onclick=function(){embySend(false)};
+  $('#hook-gen').onclick=function(){modal('Générer un nouveau secret ?','L\'ancien secret cesse de fonctionner. Le nouveau n\'est affiché qu\'une fois.',function(){post('/api/settings/hook/regenerate').then(function(r){$('#hook-val').value=r.secret;$('#hook-show').hidden=false;$('#hook-hint').hidden=false;$('#hook-state').textContent='Un secret est enregistré.'})},'Générer')};
+  $('#hook-copy').onclick=function(){var v=$('#hook-val');v.select();try{navigator.clipboard.writeText(v.value).then(function(){toast('Secret copié')},function(){document.execCommand('copy');toast('Secret copié')})}catch(e){document.execCommand('copy');toast('Secret copié')}};
+
+  /* ---------- pauses automatiques ---------- */
+  function fmtDur(s){s=Math.round(s);return s>=3600?Math.floor(s/3600)+' h '+String(Math.floor(s%3600/60)).padStart(2,'0'):s>=60?Math.floor(s/60)+' min '+String(s%60).padStart(2,'0'):s+' s'}
+  function loadPauses(){api('/api/pauses').then(function(p){$('#qt-p').textContent=p.today_n?'('+p.today_n+' aujourd\'hui)':'';
+    $('#pauses-sum').textContent=p.today_n?'aujourd\'hui : '+p.today_n+' pause'+(p.today_n>1?'s':'')+', '+fmtDur(p.today_s)+' perdues':'aucune pause aujourd\'hui';
+    $('#pauses').innerHTML=p.recent.length?p.recent.map(function(x){return '<div class="prow"><div style="min-width:0"><div class="title" style="font-size:13.5px;overflow-wrap:anywhere">'+esc(x.reason)+'</div><div class="sub">'+fmtDate(x.start)+'</div></div><span class="mono">'+fmtDur((x.end||Date.now()/1000)-x.start)+'</span>'+(x.ongoing?'<span class="tag warn">en cours</span>':'')+'</div>'}).join(''):'<div class="empty">Aucune pause enregistrée : la file n\'a jamais été arrêtée par la chaleur, Emby, un jour rouge ou un blocage.</div>'})}
+
+  /* ---------- état général ---------- */
+  var prevJob=null;
+  function poll(){return api('/api/state').then(function(s){
+    var oldPaused=ST&&ST.paused;ST=s;if(s.version)$('#ver').textContent='MouFlencoder v'+s.version;
+    var txt=s.job?(s.blocked?(s.paused&&s.frozen?'Gelé · pause manuelle':'En pause · '+s.blocked):'Encodage en cours'):(s.paused?'En pause':(s.blocked?'En attente · '+s.blocked:(s.queue_len?'En attente de départ':'Au repos')));
+    $('#state-txt').textContent=txt;$('#state-txt').title=txt;$('#state-dot').className='dot'+((s.paused||s.blocked)?' pause':'');
+    $('#chip-temp').textContent=s.temp!=null?Math.round(s.temp)+' °C':'—';$('#chip-nas').textContent=s.nas_free!=null?(s.nas_free/1e12).toFixed(1).replace('.',',')+' To':'—';
+    $('#chip-tempo').textContent=s.tempo.today?s.tempo.today+' · demain '+(s.tempo.tomorrow||'?'):'inconnu';
+    $('#chip-test').hidden=!s.test_mode;
+    $('#chip-emby').textContent=!s.emby.ok?'injoignable':(s.emby.playing?s.emby.playing+' lecture'+(s.emby.playing>1?'s':'')+(s.emby.transcoding?' · '+s.emby.transcoding+' transcode':' directe'):'aucune lecture');
+    $('#btn-pause span').textContent=s.paused?'Reprendre':'Mettre en pause';
+    if(!selBusy())$('#live').innerHTML=liveHtml(s);$('#live-tag').className='tag '+(s.job?(s.blocked?'warn':'run'):'mute');$('#live-tag').textContent=s.job?(s.blocked?'En pause':'Encodage'):'Au repos';
+    var id=s.job?s.job.id:null;if(prevJob!==null&&id!==prevJob){loadAll();loadDash();loadTrash();pollQueue();if(curView==='log')loadLog()}prevJob=id;
+    if(curView==='queue')pollQueue();
+    return s})}
+  var qsel={},qLast=-1;
+  function qIds(){return Object.keys(qsel).filter(function(k){return qsel[k]}).map(Number)}
+  function updQ(){var tb=getComputedStyle($('.top')).position==='sticky'?$('.top'):$('.rail');$('#q-sel').style.top=(tb?tb.offsetHeight:0)+'px';var n=qIds().length,all=$$('[data-qsel]');$('#q-n').textContent=n?n+' coché'+(n>1?'s':''):'Aucun fichier coché';$('#q-n2').textContent=n+' coché'+(n>1?'s':'');$('#q-sel').classList.toggle('has',n>0);$('#q-all').checked=all.length>0&&all.every(function(c){return c.checked});$$('[data-qa]').forEach(function(b){b.disabled=!n})}
+  function pollQueue(){return api('/api/queue').then(function(q){$('#c-queue').textContent=q.length||'';$('#qt-n').textContent=q.length?'('+q.length+')':'';if(ST&&curView==='queue')renderQueueView(ST,q);return q})}
+  function loadAll(){['anime','series','films'].forEach(function(c){if(LIB[c]||curView===c)load(c)})}
+
+  /* ---------- médiathèque par taille ---------- */
+  var MED=null,MEDF=null,medCat='',medSort='total',medSort2='',medAsc=false,medTodo=false,medQ='',medMode='series',medLim=200,medOpen={},medDet={},medLoad={},CATN={anime:'Animes',series:'Séries',films:'Films'};
+  function fmtGo2(mo){mo=mo||0;return mo>=1024?(mo/1024).toFixed(mo>=10240?0:1).replace('.',',')+' Go':Math.round(mo)+' Mo'}
+  var RK=['SD','720p','1080p','1440p','4K'];
+  function resTag(r,t){return r?' <span class="tag info"'+(t?' title="'+esc(t)+'"':'')+'>'+esc(r)+'</span>':''}
+  function stTag(w){return w==='Traité'?' <span class="tag ok">Traité</span>':' <span class="tag mute">Non traité</span>'}
+  function haTag(f){return f.ha?' <span class="tag ok" title="Pistes harmonisées : audio français en premier, sous-titres au standard">Harmonisé</span>':''}
+  function fTags(f){return resTag(f.r,f.dm)+stTag(f.st==='REMUXE'?'':f.why)+haTag(f)+(f.hev?' <span class="tag mute">HEVC</span>':'')}
+  function seaTag(a,n,k){if(k.indexOf('anime|')===0)return '';return a>=n?' <span class="tag ok" title="Pistes harmonisées : audio français en premier, sous-titres au standard">Harmonisé</span>':a?' <span class="tag ok">'+a+' / '+n+' harmonisés</span>':' <span class="tag mute">Non harmonisé</span>'}
+  function actBtns(ak,ek,nAdd,hk,nHx){var b='';if(nAdd)b+='<button class="btn sm" '+ak+'="'+ek+'" title="Ajouter à la file d\'encodage les '+nAdd+' fichiers à traiter">Ajouter ('+nAdd+')</button>';if(nHx)b+='<button class="btn sm" '+hk+'="'+ek+'" title="Harmoniser les pistes de '+nHx+' fichiers, sans réencoder la vidéo (aucune perte de qualité)">Harmoniser ('+nHx+')</button>';return b?'<div class="acts">'+b+'</div>':''}
+  function resTags(r){var ks=Object.keys(r).sort(function(a,b){return RK.indexOf(b)-RK.indexOf(a)}),h='';
+    ks.forEach(function(k){h+=resTag(k+(ks.length>1?' ×'+r[k]:''),ks.length>1?r[k]+' fichier'+(r[k]>1?'s':'')+' en '+k:'')});return h}
+  function serTags(s){var h=resTags(s.res||{});
+    var d=s.done||0,a=s.ha_n||0;h+=(d>=s.files?' <span class="tag ok">Traité</span>':d?' <span class="tag ok">'+d+' / '+s.files+' traités</span>':' <span class="tag mute">Non traité</span>');
+    if(s.c!=='anime')h+=(a>=s.files?' <span class="tag ok" title="Pistes harmonisées : audio français en premier, sous-titres au standard">Harmonisé</span>':a?' <span class="tag ok">'+a+' / '+s.files+' harmonisés</span>':' <span class="tag mute">Non harmonisé</span>');return h}
+  var MSO=[['total','Taille totale'],['avg','Moy. par fichier'],['todo','Reste à traiter'],['avgt','Moy. à traiter'],['files','Nb de fichiers']];
+  var MSK={total:function(s){return s.total},avg:function(s){return s.avg},todo:function(s){return s.todo},avgt:function(s){return s.todo_n?s.todo/s.todo_n:0},files:function(s){return s.files}};
+  function nFic(n){return n+' fichier'+(n>1?'s':'')}
+  function medSave(){try{localStorage.setItem('mf-med',JSON.stringify({s:medSort,s2:medSort2,a:medAsc,t:medTodo}))}catch(e){}}
+  try{var mp=JSON.parse(localStorage.getItem('mf-med')||'{}');if(MSK[mp.s])medSort=mp.s;if(MSK[mp.s2]&&mp.s2!==medSort)medSort2=mp.s2;medAsc=!!mp.a;medTodo=!!mp.t}catch(e){}
+  var UNI=null;
+  function loadUni(){api('/api/remux/saisons').then(function(r){UNI=r;renderUni()})}
+  function renderUni(){var el=$('#med-uni');if(!UNI||!UNI.actif||!UNI.fichiers){el.hidden=true;return}
+    var h='<b>'+UNI.fichiers+' fichiers ('+fmtGo2(UNI.mo)+')</b> de '+UNI.series+' séries déjà traitées n\'ont pas leurs pistes harmonisées, alors que le reste de leur saison l\'est ('+UNI.saisons+' saisons). <button class="btn sm" data-uni="">Tout mettre en file</button>';
+    h+='<details style="margin-top:8px"><summary style="cursor:pointer">Voir les séries concernées</summary><div style="margin-top:6px">'+UNI.liste.map(function(s){return '<div style="display:flex;gap:10px;align-items:center;padding:3px 0"><span style="flex:1;min-width:0">'+esc(s.n)+' <span class="sub">'+s.fichiers+' fichiers · '+fmtGo2(s.mo)+' · '+s.saisons+' saison'+(s.saisons>1?'s':'')+'</span></span><button class="btn sm" data-uni="'+encodeURIComponent(s.n)+'">Mettre en file</button></div>'}).join('')+'</div></details>';
+    el.innerHTML=h;el.hidden=false}
+  function loadMedia(){loadUni();if(medMode==='files')return api('/api/media/files?limit=500&cat='+medCat+'&q='+encodeURIComponent(medQ)).then(function(r){MEDF=r;renderMedia()});return api('/api/media').then(function(r){MED=r;renderMedia()})}
+  function medDetail(k,cb){var p=k.split('|');if(medDet[k])return cb&&cb();if(medLoad[k])return;medLoad[k]=1;api('/api/media/series?cat='+p[0]+'&name='+encodeURIComponent(k.slice(p[0].length+1))).then(function(r){medDet[k]=r.seasons;medLoad[k]=0;if(cb)cb();renderMedia()})}
+  function medSeg(id,opts,cur,att){$(id).innerHTML=opts.map(function(x){return '<button '+att+'="'+x[0]+'" aria-pressed="'+(cur===x[0])+'">'+x[1]+'</button>'}).join('')}
+  function renderMedia(){
+    medSeg('#med-m',[['series','Par série'],['files','Tous les fichiers']],medMode,'data-mm');
+    medSeg('#med-c',[['','Tout'],['anime','Animes'],['series','Séries'],['films','Films']],medCat,'data-mc');
+    $('#med-t2').hidden=$('#med-f').hidden=medMode==='files';
+    if(medMode!=='files'){
+      medSeg('#med-f',[['t','Seulement ceux à traiter']],medTodo?'t':'','data-mf');
+      medSeg('#med-s',MSO.map(function(x){return [x[0],x[1]+(x[0]===medSort?(medAsc?' ↑':' ↓'):'')]}),medSort,'data-mo');
+      medSeg('#med-s2',[['','Aucun']].concat(MSO.filter(function(x){return x[0]!==medSort})),medSort2,'data-m2')}
+    var h='';
+    if(medMode==='files'){
+      if(!MEDF)return;
+      $('#med-h').innerHTML='<tr><th>Fichier</th><th>Série</th><th class="r">Taille</th><th></th></tr>';
+      $('#med-sum').textContent=MEDF.total+' fichiers'+(MEDF.total>MEDF.files.length?' (les '+MEDF.files.length+' plus gros affichés)':'')+', du plus gros au plus petit';
+      MEDF.files.forEach(function(f){h+='<tr><td class="mono" style="font-size:12.5px;word-break:break-all">'+esc(f.p.split('/').pop())+fTags(f)+'</td><td>'+esc(f.n)+'<div class="sub">'+CATN[f.c]+' · S'+String(f.s).padStart(2,'0')+'E'+String(f.e).padStart(2,'0')+'</div></td><td class="r mono"><b>'+fmtGo2(f.sz)+'</b></td><td class="r"><button class="btn sm" data-mqf="'+encodeURIComponent(f.p)+'|'+f.c+'">Ajouter</button></td></tr>'});
+      $('#med-b').innerHTML=h||'<tr><td colspan="4" class="empty">Aucun fichier.</td></tr>';return}
+    if(!MED)return;
+    var l=MED.series.filter(function(s){return(!medCat||s.c===medCat)&&(!medQ||s.n.toLowerCase().indexOf(medQ)>=0)&&(!medTodo||s.todo_n>0)});
+    var k1=MSK[medSort],k2=medSort2?MSK[medSort2]:null,sg=medAsc?-1:1;
+    l.sort(function(a,b){var d=(k1(b)-k1(a))*sg;if(!d&&k2)d=(k2(b)-k2(a))*sg;return d||a.n.localeCompare(b.n)});
+    var lab=function(k){return MSO.filter(function(x){return x[0]===k})[0][1]};
+    var tot=l.reduce(function(a,s){return a+s.total},0),td=l.reduce(function(a,s){return a+s.todo},0),nf=l.reduce(function(a,s){return a+s.files},0);
+    $('#med-sum').textContent=l.length+' séries · '+nf+' fichiers · '+fmtGo2(tot)+' au total · '+fmtGo2(td)+' encore à traiter · tri : '+lab(medSort)+(medSort2?', puis '+lab(medSort2):'')+(medAsc?' (du plus petit au plus grand)':' (du plus grand au plus petit)');
+    $('#med-h').innerHTML='<tr class="medhd"><th>Série</th><th class="r">Fichiers</th><th class="r">Taille totale</th><th class="r hm">Moy. par fichier</th><th class="r hm">Reste à traiter</th><th></th></tr>';
+    l.slice(0,medLim).forEach(function(s){
+      var k=s.c+'|'+s.n,o=medOpen[k],ek=encodeURIComponent(k);
+      h+='<tr class="medrow" data-ms="'+ek+'"><td>'+(o?'▾ ':'▸ ')+'<b>'+esc(s.n)+'</b><div class="sub">'+CATN[s.c]+serTags(s)+'</div>'+'<div class="mob">'+nFic(s.files)+' · '+fmtGo2(s.total)+'</div>'+(s.todo_n?'<div class="mob">À traiter : '+nFic(s.todo_n)+' · '+fmtGo2(s.todo)+' · moy. '+fmtGo2(s.todo/s.todo_n)+'</div>':'')+'</td><td class="r mono">'+s.files+'</td><td class="r mono"><b>'+fmtGo2(s.total)+'</b></td><td class="r mono hm">'+fmtGo2(s.avg)+'</td><td class="r mono hm">'+(s.todo?fmtGo2(s.todo)+'<div class="sub">'+nFic(s.todo_n)+' · moy. '+fmtGo2(s.todo/s.todo_n)+'</div>':'—')+'</td><td class="r">'+actBtns('data-mqs',ek,s.todo_n,'data-mqx',s.hx_n)+'</td></tr>';
+      if(o){
+        if(!medDet[k]){h+='<tr class="medsea"><td colspan="6">Chargement…</td></tr>';medDetail(k)}
+        else medDet[k].forEach(function(se){
+          var sk=k+'#'+se.s,so=medOpen[sk],t2=se.eps.reduce(function(a,e){return a+e.sz},0),n2=se.eps.filter(function(e){return!e.why}).length,n3=se.eps.filter(function(e){return e.hx}).length,h3=se.eps.filter(function(e){return e.ha}).length,rs={};se.eps.forEach(function(e){if(e.r)rs[e.r]=(rs[e.r]||0)+1});
+          h+='<tr class="medsea" data-mse="'+encodeURIComponent(sk)+'" style="cursor:pointer"><td>'+(so?'▾ ':'▸ ')+(se.s?'Saison '+se.s:'Saison 0 · spéciaux, films')+'<div class="sub">'+resTags(rs)+seaTag(h3,se.eps.length,k)+'</div>'+'<div class="mob">'+nFic(se.eps.length)+' · '+fmtGo2(t2)+'</div></td><td class="r mono">'+se.eps.length+'</td><td class="r mono">'+fmtGo2(t2)+'</td><td class="hm"></td><td class="hm"></td><td class="r">'+actBtns('data-mqa',encodeURIComponent(sk),n2,'data-mqy',n3)+'</td></tr>';
+          if(so)se.eps.slice().sort(function(a,b){return b.sz-a.sz}).forEach(function(e){h+='<tr class="medep"><td colspan="2">Épisode '+e.e+(e.tm?' <span class="sub">'+esc(e.tm)+'</span>':'')+fTags(e)+(e.why&&e.why!=='Traité'?' <span class="sub">· '+esc(e.why)+'</span>':'')+'</td><td class="r mono">'+fmtGo2(e.sz)+'</td><td class="hm"></td><td class="hm"></td><td></td></tr>'})})}});
+    if(l.length>medLim)h+='<tr><td colspan="6" style="text-align:center"><button class="btn sm" data-mmore="1">Afficher plus (' +(l.length-medLim)+' restantes)</button></td></tr>';
+    $('#med-b').innerHTML=h||'<tr><td colspan="6" class="empty">Aucune série.</td></tr>'}
+  function medRx(k,sea){medDetail(k,function(){var ps=[];(medDet[k]||[]).forEach(function(se){if(sea==null||se.s===sea)se.eps.forEach(function(e){if(e.hx)ps.push(e.p)})});
+    if(!ps.length){toast('Rien à harmoniser ici');return}var c=k.split('|')[0],nm=k.slice(c.length+1);
+    if(!confirm('Harmoniser les pistes de '+nFic(ps.length)+' de « '+nm+' »'+(sea!=null?' (saison '+sea+')':'')+' ?\n\nLa vidéo n\'est pas réencodée : aucune perte de qualité. Chaque fichier est relu puis réécrit sur le NAS (environ 10 secondes par fichier, quand son tour arrive dans la file). Les fichiers TS, MP4 ou AVI sont convertis en MKV et leur original va à la Corbeille.'))return;
+    post('/api/queue/add',{paths:[],remux:ps,series:nm,cat:c}).then(function(r){toast((r.remux||0)+' fichier(s) à harmoniser ajouté(s) à la file');delete medDet[k];pollQueue();loadMedia()})})}
+  function medAdd(k,sea){medDetail(k,function(){var ps=[];(medDet[k]||[]).forEach(function(se){if(sea==null||se.s===sea)se.eps.forEach(function(e){if(!e.why)ps.push(e.p)})});
+    if(!ps.length){toast('Rien à ajouter ici');return}var c=k.split('|')[0],nm=k.slice(c.length+1);
+    post('/api/queue/add',{paths:ps,series:nm,cat:c}).then(function(r){toast((r.added||0)+' fichier(s) ajouté(s) à la file'+(r.remux?' + '+r.remux+' à harmoniser':''));delete medDet[k];pollQueue();loadMedia()})})}
+  document.addEventListener('click',function(e){var t=e.target,b;
+    if(curView!=='media')return;
+    if((b=t.closest('[data-uni]'))){var sn=decodeURIComponent(b.dataset.uni||'');
+      if(!confirm('Mettre en file '+(sn?'les épisodes de « '+sn+' »':'tous ces fichiers')+' pour harmoniser leurs pistes ? Aucune vidéo n\'est réencodée, mais chaque fichier est relu et réécrit sur le NAS.'))return;
+      post('/api/remux/saisons',{confirm:true,serie:sn||null}).then(function(r){toast((r.added||0)+' fichier(s) à harmoniser ajouté(s) à la file');pollQueue();loadUni();loadMedia()});return}
+    if((b=t.closest('[data-mqx]'))){e.stopPropagation();medRx(decodeURIComponent(b.dataset.mqx),null);return}
+    if((b=t.closest('[data-mqy]'))){e.stopPropagation();var v2=decodeURIComponent(b.dataset.mqy),i2=v2.lastIndexOf('#');medRx(v2.slice(0,i2),+v2.slice(i2+1));return}
+    if((b=t.closest('[data-mqs]'))){e.stopPropagation();medAdd(decodeURIComponent(b.dataset.mqs),null);return}
+    if((b=t.closest('[data-mqa]'))){e.stopPropagation();var v=decodeURIComponent(b.dataset.mqa),i=v.lastIndexOf('#');medAdd(v.slice(0,i),+v.slice(i+1));return}
+    if((b=t.closest('[data-mqf]'))){var p=b.dataset.mqf.split('|'),pth=decodeURIComponent(p[0]);post('/api/queue/add',{paths:[pth],cat:p[1]}).then(function(r){toast(r.added?'Ajouté à la file':'Déjà dans la file');pollQueue()});return}
+    if(t.closest('.acts')&&!t.closest('button'))return;
+    if((b=t.closest('[data-mse]'))){var sk=decodeURIComponent(b.dataset.mse);medOpen[sk]=!medOpen[sk];renderMedia();return}
+    if((b=t.closest('[data-ms]'))){var mk=decodeURIComponent(b.dataset.ms);medOpen[mk]=!medOpen[mk];renderMedia();return}
+    if((b=t.closest('[data-mm]'))){medMode=b.dataset.mm;loadMedia();return}
+    if((b=t.closest('[data-mc]'))){medCat=b.dataset.mc;if(medMode==='files')loadMedia();else renderMedia();return}
+    if((b=t.closest('[data-mo]'))){var v=b.dataset.mo;if(v===medSort)medAsc=!medAsc;else{medSort=v;if(medSort2===v)medSort2=''}medSave();renderMedia();return}
+    if((b=t.closest('[data-m2]'))){medSort2=b.dataset.m2;medSave();renderMedia();return}
+    if(t.closest('[data-mf]')){medTodo=!medTodo;medSave();renderMedia();return}
+    if(t.closest('[data-mmore]')){medLim+=200;renderMedia();return}
+    if(t.closest('#med-reload')){post('/api/library/refresh');toast('Actualisation lancée');medDet={};setTimeout(loadMedia,9000);loadMedia();return}
+  });
+  var mqt;$('#med-q').addEventListener('input',function(){clearTimeout(mqt);mqt=setTimeout(function(){medQ=$('#med-q').value.trim().toLowerCase();medLim=200;if(medMode==='files')loadMedia();else renderMedia()},300)});
+
+  /* ---------- navigation, thème ---------- */
+  var views=['dashboard','anime','series','films','media','queue','trash','log','settings'];
+  function show(v){
+    if(views.indexOf(v)<0)v='dashboard';curView=v;
+    views.forEach(function(x){$('#v-'+x).hidden=(x!==v)});
+    $$('.nav').forEach(function(n){n.getAttribute('data-view')===v?n.setAttribute('aria-current','page'):n.removeAttribute('aria-current')});
+    window.scrollTo(0,0);
+    var an=$('.nav[data-view="'+v+'"]');if(an){var cl=an.cloneNode(true);$$('svg,.cnt',cl).forEach(function(x){x.remove()});$('#cur-title').textContent=cl.textContent.trim()}
+    $('#rail').classList.remove('open');$('#btn-menu').setAttribute('aria-expanded','false');
+    if(v==='anime'||v==='series'||v==='films'){if(LIB[v])renderCat(v);load(v)}
+    if(v==='media')loadMedia();
+    if(v==='dashboard')loadDash();if(v==='queue'){pollQueue();loadPauses()}if(v==='trash')loadTrash();if(v==='log'){renderLogF();loadLog()}
+    if(v==='settings'){api('/api/settings').then(applySettings);loadEmby()}
+    updBar();
+  }
+  $('#btn-menu').addEventListener('click',function(e){e.stopPropagation();var r=$('#rail'),o=!r.classList.contains('open');r.classList.toggle('open',o);this.setAttribute('aria-expanded',o)});
+  document.addEventListener('click',function(e){var r=$('#rail');if(r.classList.contains('open')&&!e.target.closest('#rail')){r.classList.remove('open');$('#btn-menu').setAttribute('aria-expanded','false')}});
+  $$('.nav').forEach(function(n){n.addEventListener('click',function(){var v=n.getAttribute('data-view');show(v);try{history.replaceState(null,'','#'+v)}catch(e){}})});
+  function applyTheme(t){document.documentElement.setAttribute('data-theme',t);$('#btn-theme').textContent=t==='dark'?'☾ Sombre':'☀ Clair'}
+  var th='dark';try{th=localStorage.getItem('mf-theme')||'dark'}catch(e){}
+  applyTheme(th);
+  $('#btn-theme').onclick=function(){var nx=(document.documentElement.getAttribute('data-theme')||'dark')==='dark'?'light':'dark';applyTheme(nx);try{localStorage.setItem('mf-theme',nx)}catch(e){}};
+  poll().then(function(s){tempoTiles(s);api('/api/settings').then(applySettings)});
+  setInterval(function(){poll().then(tempoTiles)},3000);
+  setInterval(function(){if(document.hidden||selBusy())return;if(curView==='dashboard')loadDash();else if(curView==='queue'){loadPauses()}else if(curView==='log')loadLog();else if(curView==='trash')loadTrash()},10000);
+  pollQueue();loadTrash();
+  show((location.hash||'').replace('#',''));
+})();
+</script>
+</body>
+</html>
