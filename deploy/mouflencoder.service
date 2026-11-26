@@ -10,6 +10,8 @@ ExecStart=/usr/bin/python3 /opt/mouflencoder/app.py
 Restart=on-failure
 RestartSec=5
 Environment=PYTHONUNBUFFERED=1
+# Heure de Paris : la journée Tempo va de 6 h à 6 h, heure française (indispensable si le système est en UTC)
+Environment=TZ=Europe/Paris
 # Racine de la médiathèque, telle qu'Emby la voit
 Environment=MFE_NAS_ROOT=/mnt/media
 #Environment=MFE_EMBY_HOST=http://192.168.1.10:8096

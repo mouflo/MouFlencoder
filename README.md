@@ -144,6 +144,7 @@ Ouvrez ensuite `http://<adresse>:8300` **depuis le réseau local** : la page « 
 | `MFE_NAS_ROOT` | `/mnt/media` | Racine de la médiathèque. Les dossiers `MouFlencoder/{Corbeille,Registre,Remplaces}` y sont créés. |
 | `MFE_EMBY_HOST` | `http://localhost:8096` | Adresse Emby par défaut (modifiable ensuite dans l'interface). |
 | `MFE_WORK` | `/var/tmp/mouflencoder` | Dossier de travail local (prévoir ~2× la taille du plus gros fichier). |
+| `TZ` | `Europe/Paris` (dans le service) | **À garder** : Tempo, nuits et bilan quotidien suivent l'heure française, même si le système est en UTC. |
 
 Les catégories sont reconnues par le chemin : `/Manga/` → animes, `/Films` ou `/Movies/` → films, le reste → séries.
 
